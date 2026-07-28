@@ -82,30 +82,13 @@
     }
   ];
 
-  /** Demo premises when live inventory is empty (lab-friendly). */
-  var DEMO_DEVICES = [
-    {
-      id: "loc-north-12",
-      address: "12 North Ridge Rd",
-      member: "Rivera household",
-      ont: { id: "1/1/3/12", model: "GS4227E", status: "online", serial: "CXNK00A1B2C3" },
-      router: { model: "prplOS CPE", status: "online", mac: "02:1a:2b:3c:4d:5e" }
-    },
-    {
-      id: "loc-elm-408",
-      address: "408 Elm Court",
-      member: "Nguyen household",
-      ont: { id: "1/2/1/08", model: "GS4220E", status: "degraded", serial: "CXNK00D4E5F6" },
-      router: { model: "OpenWrt CPE", status: "online", mac: "02:aa:bb:cc:dd:01" }
-    },
-    {
-      id: "loc-pine-9",
-      address: "9 Pine Hollow",
-      member: "Okoye household",
-      ont: { id: "1/1/2/19", model: "GS4227E", status: "offline", serial: "CXNK00G7H8I9" },
-      router: { model: "prplOS CPE", status: "offline", mac: "02:11:22:33:44:55" }
+  /** Demo premises from shared catalog (location-first context). */
+  function demoDevices() {
+    if (window.EdgeContextCatalog && typeof EdgeContextCatalog.all === "function") {
+      return EdgeContextCatalog.all().slice(0, 3);
     }
-  ];
+    return [];
+  }
 
   function statusBadge(st) {
     var s = (st || "").toLowerCase();
@@ -141,12 +124,22 @@
   function renderDevicePreview(list) {
     var g = $("devicePreview");
     if (!g) return;
-    var items = (list || DEMO_DEVICES).slice(0, 3);
+    var items = (list || demoDevices()).slice(0, 3);
     g.innerHTML = items
       .map(function (loc) {
         var ontSt = loc.ont && loc.ont.status ? loc.ont.status : "unknown";
+        var href =
+          "/devices/?id=" +
+          encodeURIComponent(loc.id) +
+          "&location=" +
+          encodeURIComponent(loc.id) +
+          (loc.router_id
+            ? "&router_id=" + encodeURIComponent(loc.router_id)
+            : "");
         return (
-          '<a class="device-card" href="/devices/?id=' +
+          '<a class="device-card" href="' +
+          href +
+          '" data-loc-id="' +
           encodeURIComponent(loc.id) +
           '">' +
           '<div class="device-head">' +
@@ -173,6 +166,20 @@
         );
       })
       .join("");
+    g.querySelectorAll("a.device-card[data-loc-id]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var id = el.getAttribute("data-loc-id");
+        if (
+          id &&
+          window.EdgeContext &&
+          window.EdgeContextCatalog &&
+          EdgeContextCatalog.get
+        ) {
+          var loc = EdgeContextCatalog.get(decodeURIComponent(id));
+          if (loc) EdgeContext.setFromLocation(loc, { source: "device" });
+        }
+      });
+    });
   }
 
   function escapeHtml(s) {
@@ -326,16 +333,16 @@
     } catch (e) { /* unauth or disabled */ }
     if ($("statShelves")) $("statShelves").textContent = String(shelves);
     if ($("statOnts")) {
-      $("statOnts").textContent = onts > 0 ? String(onts) : String(DEMO_DEVICES.length);
+      $("statOnts").textContent = onts > 0 ? String(onts) : String(demoDevices().length);
     }
     if ($("statLocations")) {
-      $("statLocations").textContent = String(DEMO_DEVICES.length);
+      $("statLocations").textContent = String(demoDevices().length);
     }
   }
 
   async function loadDashboard() {
     renderServices();
-    renderDevicePreview(DEMO_DEVICES);
+    renderDevicePreview(demoDevices());
     await loadHealth();
     await loadE7Stats();
   }

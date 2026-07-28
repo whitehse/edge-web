@@ -10,12 +10,14 @@ Living checklist for the browser project and interaction redesign.
 
 ## Next (redesign — owner: product / UI)
 
-- [ ] Define information architecture (nav, primary operator jobs)
-- [ ] Clarify CPE selection model (how `router_id` is chosen and persisted)
-- [ ] Unify live-strip vs history interaction across graphs/host/flows
+- [x] Slice 1: shell + **location-first** global context (`EdgeContext`)
+- [x] Wire host / flows / graphs + devices to shared context
+- [x] Light nav grouping (Telemetry / Access gear)
+- [ ] Unify live-strip vs history interaction across graphs/host/flows (slice 2)
 - [ ] Document per-page WS subscription matrix (which channels each route needs)
 - [ ] Decide auth UX (lab password vs proxy headers) for multi-page flows
-- [ ] Map page: live `map.dynamic` via WS feed (status-map guide “next”)
+- [ ] Map page: live `map.dynamic` via WS feed + highlight selected location
+- [ ] Inventory API replaces static `context_catalog.js`
 - [ ] Optional: build step / module packaging ADR if the site outgrows static JS
 
 ## Contract follow-ups (need edgehost when wire changes)

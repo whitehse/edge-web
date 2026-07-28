@@ -12,12 +12,14 @@
     { id: "home", href: "/", label: "Home", ico: "◈" },
     { id: "devices", href: "/devices/", label: "Locations & devices", ico: "⌂" },
     { id: "map", href: "/map/", label: "Status map", ico: "◎" },
-    { section: "Services" },
+    { section: "Telemetry" },
+    { id: "graphs", href: "/graphs/", label: "Graphs", ico: "▤" },
+    { id: "host", href: "/host/", label: "CPE host & Wi‑Fi", ico: "▣" },
+    { id: "flows", href: "/flows/", label: "CPE flows", ico: "⇄" },
+    { section: "Access gear" },
     { id: "e7", href: "/e7/", label: "E7 Call Home", ico: "⬡" },
     { id: "junos", href: "/junos/", label: "Junos Call Home", ico: "▣" },
-    { id: "graphs", href: "/graphs/", label: "Graphs", ico: "▤" },
-    { id: "flows", href: "/flows/", label: "CPE flows", ico: "⇄" },
-    { id: "host", href: "/host/", label: "CPE host & Wi‑Fi", ico: "▣" },
+    { section: "Services" },
     { id: "explain", href: "/explain/", label: "Fiber explain", ico: "◇" },
     { id: "ca", href: "/ca/", label: "Certificate Authority", ico: "🔐" },
     { section: "Tools" },
@@ -174,7 +176,23 @@
       "</h1>" +
       (subtitle ? '<p class="page-sub">' + subtitle + "</p>" : "") +
       "</div></div>" +
-      '<div class="row" style="margin:0;gap:0.5rem" id="shellTopActions">' +
+      '<div class="shell-context" id="shellContext" aria-label="Location and CPE context">' +
+      '<label class="shell-ctx-field">' +
+      '<span class="shell-ctx-label">Location</span>' +
+      '<select id="shellLocation" title="Member premise">' +
+      '<option value="">— Select location —</option>' +
+      "</select></label>" +
+      '<label class="shell-ctx-field shell-ctx-cpe">' +
+      '<span class="shell-ctx-label">CPE</span>' +
+      '<input id="shellRouter" type="text" list="shellRouterRecent" ' +
+      'placeholder="router_id" autocomplete="off" spellcheck="false" ' +
+      'title="Telemetry router_id"/>' +
+      '<datalist id="shellRouterRecent"></datalist></label>' +
+      '<button type="button" class="ghost shell-ctx-clear" id="shellCtxClear" ' +
+      'title="Clear location and CPE">Clear</button>' +
+      '<span class="shell-ctx-chip" id="shellCtxChip" hidden></span>' +
+      "</div>" +
+      '<div class="row shell-top-actions" style="margin:0;gap:0.5rem" id="shellTopActions">' +
       '<button type="button" class="theme-toggle" id="shellThemeBtn">☀ Light</button>' +
       "</div>";
 
@@ -205,6 +223,8 @@
     var themeBtn = $("#shellThemeBtn");
     if (themeBtn) themeBtn.addEventListener("click", toggleTheme);
 
+    mountContextControls();
+
     var oldHeader = content.querySelector(":scope > header");
     if (oldHeader && !oldHeader.classList.contains("app-topbar")) {
       oldHeader.classList.add("hidden");
@@ -219,6 +239,133 @@
     for (var i = 0; i < loginCards.length; i++) {
       loginCards[i].classList.add("hidden");
     }
+  }
+
+  var ctxSyncing = false;
+
+  function fillLocationSelect(sel, selectedId) {
+    if (!sel) return;
+    var Cat = global.EdgeContextCatalog;
+    if (Cat && typeof Cat.optionsHtml === "function") {
+      sel.innerHTML = Cat.optionsHtml(selectedId || "");
+      return;
+    }
+    sel.innerHTML = '<option value="">— Select location —</option>';
+  }
+
+  function fillRouterRecent(dl, routerId) {
+    if (!dl) return;
+    var seen = {};
+    var ids = [];
+    function add(r) {
+      if (!r || seen[r]) return;
+      seen[r] = true;
+      ids.push(r);
+    }
+    add(routerId);
+    var Cat = global.EdgeContextCatalog;
+    if (Cat && typeof Cat.all === "function") {
+      Cat.all().forEach(function (loc) {
+        add(loc.router_id);
+      });
+    }
+    try {
+      var raw = localStorage.getItem("edgehost-graphs-recent-routers");
+      var a = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(a)) {
+        a.forEach(add);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+    dl.innerHTML = ids
+      .slice(0, 16)
+      .map(function (r) {
+        return '<option value="' + r.replace(/"/g, "&quot;") + '"></option>';
+      })
+      .join("");
+  }
+
+  function paintContextUi(c) {
+    c = c || (global.EdgeContext && global.EdgeContext.get()) || {};
+    ctxSyncing = true;
+    var sel = $("#shellLocation");
+    var inp = $("#shellRouter");
+    var chip = $("#shellCtxChip");
+    if (sel) {
+      fillLocationSelect(sel, c.locationId || "");
+      sel.value = c.locationId || "";
+    }
+    if (inp) {
+      inp.value = c.routerId || "";
+    }
+    fillRouterRecent($("#shellRouterRecent"), c.routerId || "");
+    if (chip) {
+      if (c.label || c.routerId || c.locationId) {
+        chip.hidden = false;
+        chip.textContent = c.label
+          ? c.label + (c.routerId ? " · " + c.routerId : "")
+          : c.routerId || c.locationId;
+      } else {
+        chip.hidden = true;
+        chip.textContent = "";
+      }
+    }
+    document.body.classList.toggle(
+      "has-context",
+      !!(c.routerId || c.locationId)
+    );
+    ctxSyncing = false;
+  }
+
+  function mountContextControls() {
+    var sel = $("#shellLocation");
+    var inp = $("#shellRouter");
+    var clearBtn = $("#shellCtxClear");
+    var EC = global.EdgeContext;
+    if (!EC) {
+      var wrap = $("#shellContext");
+      if (wrap) wrap.hidden = true;
+      return;
+    }
+
+    paintContextUi(EC.get());
+
+    if (sel) {
+      sel.addEventListener("change", function () {
+        if (ctxSyncing) return;
+        var id = sel.value;
+        if (!id) {
+          EC.clear({ source: "user" });
+          return;
+        }
+        var Cat = global.EdgeContextCatalog;
+        var loc = Cat && Cat.get ? Cat.get(id) : null;
+        if (loc) EC.setFromLocation(loc, { source: "user" });
+        else EC.set({ locationId: id, source: "user" });
+      });
+    }
+    if (inp) {
+      function commitRouter() {
+        if (ctxSyncing) return;
+        EC.setRouter(inp.value, { source: "user" });
+      }
+      inp.addEventListener("change", commitRouter);
+      inp.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commitRouter();
+        }
+      });
+    }
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        if (EC) EC.clear({ source: "user" });
+      });
+    }
+    EC.onChange(function (c) {
+      paintContextUi(c);
+    });
   }
 
   function setAuthUi(ok, label, sub, roles) {
@@ -301,6 +448,7 @@
     onAuthChange: onAuthChange,
     applyTheme: applyTheme,
     toggleTheme: toggleTheme,
+    paintContextUi: paintContextUi,
     isAuthed: function () {
       return !!lastAuthOk;
     },
@@ -310,10 +458,19 @@
   initTheme();
 
   function boot() {
+    /* Ensure context is hydrated before painting shell controls */
+    if (global.EdgeContext && typeof global.EdgeContext.init === "function") {
+      global.EdgeContext.init({ silent: true });
+    }
     mountShell();
     /* Theme button exists after mount */
     var t = document.documentElement.getAttribute("data-theme") || "dark";
     applyTheme(t);
+    paintContextUi(
+      global.EdgeContext && global.EdgeContext.get
+        ? global.EdgeContext.get()
+        : null
+    );
 
     requireAuth().then(function (ok) {
       if (ok && global.EdgeMux && typeof global.EdgeMux.connect === "function") {

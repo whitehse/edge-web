@@ -301,9 +301,98 @@ body.app-shell.shell-collapsed {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
   padding: 1rem 1.5rem 0.75rem;
   border-bottom: 1px solid transparent;
+}
+
+/* Location-first operator context (shell topbar) */
+.shell-context {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  flex: 1 1 16rem;
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.shell-ctx-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.shell-ctx-label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.shell-context select,
+.shell-context input[type="text"] {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface-2, var(--card, #1a1f2a));
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  min-height: 2rem;
+  max-width: 14rem;
+}
+
+.shell-ctx-cpe input {
+  width: 9.5rem;
+}
+
+.shell-ctx-clear {
+  font-size: 0.8rem;
+  align-self: flex-end;
+  margin-bottom: 1px;
+}
+
+.shell-ctx-chip {
+  align-self: flex-end;
+  margin-bottom: 2px;
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--muted);
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent, #6ea8fe) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #6ea8fe) 35%, transparent);
+}
+
+body:not(.has-context) .shell-ctx-chip {
+  display: none;
+}
+
+.context-empty-banner {
+  display: none;
+  margin: 0 0 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px dashed var(--border, rgba(255, 255, 255, 0.18));
+  background: color-mix(in srgb, var(--warn, #e6b84d) 12%, transparent);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.context-empty-banner.is-visible {
+  display: block;
+}
+
+.shell-top-actions {
+  flex: 0 0 auto;
 }
 
 .app-topbar h1.page-title {

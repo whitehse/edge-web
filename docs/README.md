@@ -9,6 +9,7 @@
 | [interfaces/](interfaces/) | Data-exchange contracts |
 | [decisions/](decisions/) | ADRs |
 | [guides/](guides/) | Feature how-tos |
+| [guides/operator-context.md](guides/operator-context.md) | Location → CPE focus |
 
 ## Related upstream docs
 

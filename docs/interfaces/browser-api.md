@@ -78,3 +78,16 @@ SPA depends on a field, note it here or in a page guide under `docs/guides/`.
 Large basemap tiles may be served under `/map/…` (linked demo assets) or
 `/packages/`. Auth for map data is currently UI-gated; hardening belongs in
 edgehost + an edge-web decision when routes change.
+
+## Operator context (browser-only)
+
+Not an edgehost API — client state for which premise/CPE the UI is focused on.
+See [guides/operator-context.md](../guides/operator-context.md) and ADR-003.
+
+| Query param | Meaning |
+|-------------|---------|
+| `location` | Premise id (`locationId`) |
+| `router_id` | Telemetry CPE key (overrides catalog CPE when both set) |
+
+`EdgeContext` also persists to `localStorage` (`edge-web-context-v1`) and paints
+the shell top-bar picker.

@@ -1837,18 +1837,64 @@
     if (state.series) drawCharts(state.series);
   }
 
+  function ensureContextBanner() {
+    var existing = $("contextEmpty");
+    if (existing) return existing;
+    var host = document.getElementById("edge-shell-content") || document.body;
+    var el = document.createElement("div");
+    el.id = "contextEmpty";
+    el.className = "context-empty-banner";
+    el.innerHTML =
+      "Optional: pick a <strong>location</strong> in the top bar to filter flows to that CPE. " +
+      'Browse <a href="/devices/">Locations &amp; devices</a> to set focus.';
+    host.insertBefore(el, host.firstChild);
+    return el;
+  }
+
+  function applyContextToFilter(c) {
+    c = c || (window.EdgeContext && EdgeContext.get && EdgeContext.get()) || {};
+    var fr = $("filterRouter");
+    var rid = c.routerId || "";
+    if (fr && fr.value !== rid) {
+      fr.value = rid;
+    }
+    var ban = ensureContextBanner();
+    /* Flows allow empty filter (all routers) — soft hint only when empty */
+    if (ban) {
+      if (rid) ban.classList.remove("is-visible");
+      else ban.classList.add("is-visible");
+    }
+  }
+
   function bindFilters() {
     function rewatch() {
       startWatch();
+    }
+    applyContextToFilter();
+    if (window.EdgeContext && EdgeContext.onChange) {
+      EdgeContext.onChange(function (c) {
+        applyContextToFilter(c);
+        rewatch();
+      });
     }
     ["filterRouter", "filterHours", "filterLimit", "filterQ"].forEach(
       function (id) {
         var el = $(id);
         if (!el) return;
-        el.addEventListener("change", rewatch);
+        el.addEventListener("change", function () {
+          if (id === "filterRouter" && window.EdgeContext && EdgeContext.setRouter) {
+            EdgeContext.setRouter(el.value, { source: "user" });
+          }
+          rewatch();
+        });
         if (el.tagName === "INPUT") {
           el.addEventListener("keydown", function (e) {
-            if (e.key === "Enter") rewatch();
+            if (e.key === "Enter") {
+              if (id === "filterRouter" && window.EdgeContext && EdgeContext.setRouter) {
+                EdgeContext.setRouter(el.value, { source: "user" });
+              }
+              rewatch();
+            }
           });
         }
       }

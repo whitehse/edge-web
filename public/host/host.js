@@ -2593,7 +2593,40 @@
     state.clientSeriesPollTimer = setInterval(pollExpandedClientSeries, 2000);
   }
 
+  function ensureContextBanner() {
+    var existing = $("contextEmpty");
+    if (existing) return existing;
+    var host = document.getElementById("edge-shell-content") || document.body;
+    var el = document.createElement("div");
+    el.id = "contextEmpty";
+    el.className = "context-empty-banner";
+    el.innerHTML =
+      "Select a <strong>location</strong> in the top bar (or open " +
+      '<a href="/devices/">Locations &amp; devices</a>) so host series know which CPE to watch.';
+    host.insertBefore(el, host.firstChild);
+    return el;
+  }
+
+  function applyContextToFilter(c) {
+    c = c || (window.EdgeContext && EdgeContext.get && EdgeContext.get()) || {};
+    var fr = $("filterRouter");
+    var rid = c.routerId || "";
+    if (fr && fr.value !== rid) {
+      fr.value = rid;
+    }
+    var ban = ensureContextBanner();
+    if (ban) {
+      if (rid) ban.classList.remove("is-visible");
+      else ban.classList.add("is-visible");
+    }
+    var gl = $("graphsWorkspaceLink");
+    if (gl && window.EdgeContext && EdgeContext.hrefWithContext) {
+      gl.href = EdgeContext.hrefWithContext("/graphs/");
+    }
+  }
+
   function bootLive() {
+    applyContextToFilter();
     if ($("filterRange")) {
       $("filterRange").addEventListener("change", function () {
         state.minutes = selectedMinutes();
@@ -2601,7 +2634,18 @@
       });
     }
     if ($("filterRouter")) {
-      $("filterRouter").addEventListener("change", subscribe);
+      $("filterRouter").addEventListener("change", function () {
+        if (window.EdgeContext && EdgeContext.setRouter) {
+          EdgeContext.setRouter($("filterRouter").value, { source: "user" });
+        }
+        subscribe();
+      });
+    }
+    if (window.EdgeContext && EdgeContext.onChange) {
+      EdgeContext.onChange(function (c) {
+        applyContextToFilter(c);
+        subscribe();
+      });
     }
     var ths = document.querySelectorAll("#procTable thead th[data-sort]");
     var i;

@@ -73,7 +73,23 @@
 
     <section class="card">
       <h2>Related services</h2>
+      <p class="hint">Uses the location selected in the top bar (location-first context).</p>
       <div class="service-grid">
+        <a class="service-tile" id="linkGraphs" href="/graphs/">
+          <div class="tile-ico rose">▤</div>
+          <h3>Graphs</h3>
+          <p>Live host · Wi‑Fi · flow charts for this CPE.</p>
+        </a>
+        <a class="service-tile" id="linkHost" href="/host/">
+          <div class="tile-ico">▣</div>
+          <h3>Host &amp; Wi‑Fi</h3>
+          <p>Forensics tables and station detail.</p>
+        </a>
+        <a class="service-tile" id="linkFlows" href="/flows/">
+          <div class="tile-ico">⇄</div>
+          <h3>CPE flows</h3>
+          <p>Flow list and series for this router.</p>
+        </a>
         <a class="service-tile" href="/map/">
           <div class="tile-ico">◎</div>
           <h3>Status map</h3>
@@ -84,16 +100,13 @@
           <h3>E7 Call Home</h3>
           <p>Shelf sessions and ONT commands.</p>
         </a>
-        <a class="service-tile" href="/explain/">
-          <div class="tile-ico rose">◇</div>
-          <h3>Fiber explain</h3>
-          <p>Walk the optical path with the team.</p>
-        </a>
       </div>
     </section>
   </div>
 
   <script src="/app.js"></script>
+  <script src="/context_catalog.js"></script>
+  <script src="/context.js"></script>
   <script src="/shell.js"></script>
   <script src="/devices/devices.js"></script>
 </body>

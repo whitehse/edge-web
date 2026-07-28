@@ -21,7 +21,7 @@
       <datalist id="routerRecent"></datalist>
     </label>
     <div class="row-actions">
-      <button type="button" class="primary" id="btnApplyRouter">Apply CPE</button>
+      <button type="button" class="primary" id="btnApplyRouter" title="Set CPE in shell context and refresh series">Apply CPE</button>
       <button type="button" class="primary" id="btnAddGraph">+ Add graph</button>
       <button type="button" class="ghost" id="btnResetLayout">Reset layout</button>
       <span class="hint" id="statusLine">Connecting…</span>
@@ -76,6 +76,8 @@
   </div>
 
   <script src="/app.js"></script>
+  <script src="/context_catalog.js"></script>
+  <script src="/context.js"></script>
   <script src="/shell.js"></script>
   <script src="/ws_mux.js"></script>
   <script type="module" src="./graphs.js"></script>

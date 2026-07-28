@@ -128,11 +128,16 @@ async function boot() {
   }
 
   /**
-   * Pick initial CPE: URL → toolbar → any panel source → most recent.
-   * Without this, saved layouts often ship empty router_id and the hub
-   * stays on "set CPE in toolbar" with unfiltered (useless) series.
+   * Pick initial CPE: EdgeContext → URL → toolbar → panel → recent.
+   * Location-first shell context is the primary source of truth.
    */
   function resolveInitialRouter() {
+    const fromCtx =
+      (window.EdgeContext &&
+        typeof window.EdgeContext.routerId === "function" &&
+        window.EdgeContext.routerId()) ||
+      "";
+    if (fromCtx) return String(fromCtx).trim();
     const fromFilter =
       (filterRouter && filterRouter.value && filterRouter.value.trim()) || "";
     if (routerFromUrl) return routerFromUrl.trim();
@@ -148,6 +153,28 @@ async function boot() {
     return "";
   }
 
+  function ensureContextBanner() {
+    let el = $("contextEmpty");
+    if (el) return el;
+    const host = document.getElementById("edge-shell-content") || document.body;
+    el = document.createElement("div");
+    el.id = "contextEmpty";
+    el.className = "context-empty-banner";
+    el.innerHTML =
+      "Select a <strong>location</strong> in the top bar (or open " +
+      '<a href="/devices/">Locations &amp; devices</a>) before live series can load. ' +
+      "Lab CPE is often <code>router</code>.";
+    host.insertBefore(el, host.firstChild);
+    return el;
+  }
+
+  function paintContextEmpty(rid) {
+    const ban = ensureContextBanner();
+    if (!ban) return;
+    if (rid) ban.classList.remove("is-visible");
+    else ban.classList.add("is-visible");
+  }
+
   const initialRouter = resolveInitialRouter();
   if (filterRouter) {
     if (initialRouter && !filterRouter.value.trim()) {
@@ -158,6 +185,19 @@ async function boot() {
   }
   if (initialRouter) {
     applyGlobalRouter(initialRouter);
+  }
+  paintContextEmpty(initialRouter);
+  /* Mirror into EdgeContext when we resolved from URL/recent without context */
+  if (
+    initialRouter &&
+    window.EdgeContext &&
+    typeof window.EdgeContext.setRouter === "function" &&
+    !window.EdgeContext.routerId()
+  ) {
+    window.EdgeContext.setRouter(initialRouter, {
+      source: routerFromUrl ? "url" : "user",
+      silent: true
+    });
   }
 
   const mux = window.EdgeMux;
@@ -646,11 +686,20 @@ async function boot() {
   }
   liveRaf = requestAnimationFrame(liveLoop);
 
-  /* global CPE filter */
-  function applyCpeFromToolbar() {
+  /* global CPE filter — writes EdgeContext so shell + other pages stay aligned */
+  function applyCpeFromToolbar(opts) {
+    opts = opts || {};
     const rid = (filterRouter && filterRouter.value.trim()) || "";
     if (rid) rememberRouter(rid);
+    if (
+      !opts.fromContext &&
+      window.EdgeContext &&
+      typeof window.EdgeContext.setRouter === "function"
+    ) {
+      window.EdgeContext.setRouter(rid, { source: "user", skipUrl: false });
+    }
     applyGlobalRouter(rid);
+    paintContextEmpty(rid);
     if (typeof hub.setRouter === "function") {
       if (rid) hub.setRouter(rid);
       else hub.setRouter("", { clear: true });
@@ -668,17 +717,11 @@ async function boot() {
       statusLine.textContent = rid ? "Live · " + rid : "Live · no CPE";
     }
     scheduleSave();
-    try {
-      const u = new URL(location.href);
-      if (rid) u.searchParams.set("router_id", rid);
-      else u.searchParams.delete("router_id");
-      history.replaceState(null, "", u.pathname + u.search);
-    } catch (e) {
-      /* ignore */
-    }
   }
   $("btnApplyRouter") &&
-    $("btnApplyRouter").addEventListener("click", applyCpeFromToolbar);
+    $("btnApplyRouter").addEventListener("click", function () {
+      applyCpeFromToolbar();
+    });
   if (filterRouter) {
     filterRouter.addEventListener("keydown", function (ev) {
       if (ev.key === "Enter") {
@@ -689,6 +732,15 @@ async function boot() {
     /* Match /host/: changing the field re-subscribes when a value is present. */
     filterRouter.addEventListener("change", function () {
       if (filterRouter.value.trim()) applyCpeFromToolbar();
+    });
+  }
+  if (window.EdgeContext && typeof window.EdgeContext.onChange === "function") {
+    window.EdgeContext.onChange(function (c) {
+      const rid = (c && c.routerId) || "";
+      if (filterRouter && filterRouter.value !== rid) {
+        filterRouter.value = rid;
+      }
+      applyCpeFromToolbar({ fromContext: true });
     });
   }
 

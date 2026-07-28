@@ -2,108 +2,12 @@
 (function () {
   function $(id) { return document.getElementById(id); }
 
-  var LOCATIONS = [
-    {
-      id: "loc-north-12",
-      address: "12 North Ridge Rd",
-      member: "Rivera household",
-      account: "A-10428",
-      region: "North ridge",
-      installed: "2024-03-12",
-      ont: {
-        id: "1/1/3/12",
-        model: "Calix GS4227E",
-        status: "online",
-        serial: "CXNK00A1B2C3",
-        shelf_mac: "00:02:5d:d9:21:47",
-        rx_dbm: -18.4,
-        vendor: "Calix"
-      },
-      router: {
-        model: "prplOS CPE",
-        status: "online",
-        mac: "02:1a:2b:3c:4d:5e",
-        software: "cpe_agent · OpenWrt",
-        wan: "GPON · DHCP",
-        last_seen: "moments ago"
-      }
-    },
-    {
-      id: "loc-elm-408",
-      address: "408 Elm Court",
-      member: "Nguyen household",
-      account: "A-10991",
-      region: "Elm / town center",
-      installed: "2023-11-02",
-      ont: {
-        id: "1/2/1/08",
-        model: "Calix GS4220E",
-        status: "degraded",
-        serial: "CXNK00D4E5F6",
-        shelf_mac: "00:02:5d:d9:21:47",
-        rx_dbm: -26.1,
-        vendor: "Calix"
-      },
-      router: {
-        model: "OpenWrt CPE",
-        status: "online",
-        mac: "02:aa:bb:cc:dd:01",
-        software: "cpe_agent · OpenWrt",
-        wan: "GPON · DHCP",
-        last_seen: "2 min ago"
-      }
-    },
-    {
-      id: "loc-pine-9",
-      address: "9 Pine Hollow",
-      member: "Okoye household",
-      account: "A-11204",
-      region: "Pine hollow",
-      installed: "2025-01-18",
-      ont: {
-        id: "1/1/2/19",
-        model: "Calix GS4227E",
-        status: "offline",
-        serial: "CXNK00G7H8I9",
-        shelf_mac: "00:02:5d:aa:10:02",
-        rx_dbm: null,
-        vendor: "Calix"
-      },
-      router: {
-        model: "prplOS CPE",
-        status: "offline",
-        mac: "02:11:22:33:44:55",
-        software: "cpe_agent · OpenWrt",
-        wan: "—",
-        last_seen: "6 h ago"
-      }
-    },
-    {
-      id: "loc-meadow-77",
-      address: "77 Meadow Lane",
-      member: "Patel household",
-      account: "A-10003",
-      region: "Meadows",
-      installed: "2022-08-30",
-      ont: {
-        id: "1/3/1/04",
-        model: "Calix GS4227E",
-        status: "online",
-        serial: "CXNK00J1K2L3",
-        shelf_mac: "00:02:5d:aa:10:02",
-        rx_dbm: -19.2,
-        vendor: "Calix"
-      },
-      router: {
-        model: "prplOS CPE",
-        status: "online",
-        mac: "02:fe:dc:ba:98:76",
-        software: "cpe_agent · OpenWrt",
-        wan: "GPON · DHCP",
-        last_seen: "moments ago"
-      }
+  function locations() {
+    if (window.EdgeContextCatalog && typeof EdgeContextCatalog.all === "function") {
+      return EdgeContextCatalog.all();
     }
-  ];
+    return [];
+  }
 
   function escapeHtml(s) {
     return String(s == null ? "" : s)
@@ -136,6 +40,7 @@
   }
 
   function filterList(q) {
+    var LOCATIONS = locations();
     q = (q || "").trim().toLowerCase();
     if (!q) return LOCATIONS.slice();
     return LOCATIONS.filter(function (loc) {
@@ -144,11 +49,13 @@
         loc.member,
         loc.account,
         loc.region,
+        loc.router_id,
         loc.ont && loc.ont.id,
         loc.ont && loc.ont.serial,
         loc.ont && loc.ont.model,
         loc.router && loc.router.mac,
-        loc.router && loc.router.model
+        loc.router && loc.router.model,
+        loc.router && loc.router.router_id
       ]
         .join(" ")
         .toLowerCase();
@@ -211,8 +118,8 @@
   }
 
   function findLoc(id) {
-    for (var i = 0; i < LOCATIONS.length; i++) {
-      if (LOCATIONS[i].id === id) return LOCATIONS[i];
+    if (window.EdgeContextCatalog && EdgeContextCatalog.get) {
+      return EdgeContextCatalog.get(id);
     }
     return null;
   }
@@ -220,6 +127,10 @@
   function showDetail(id) {
     var loc = findLoc(id);
     if (!loc) return;
+    /* Location-first: selecting a premise sets global operator context */
+    if (window.EdgeContext && EdgeContext.setFromLocation) {
+      EdgeContext.setFromLocation(loc, { source: "device" });
+    }
     var list = $("listView");
     var det = $("detailView");
     if (list) list.classList.add("hidden");
@@ -276,6 +187,7 @@
     }
     if ($("routerKv")) {
       $("routerKv").innerHTML = kv([
+        ["router_id", loc.router_id || (rt && rt.router_id) || "—"],
         ["Model", rt.model],
         ["LAN MAC", rt.mac],
         ["Software", rt.software],
@@ -284,9 +196,26 @@
       ]);
     }
 
-    /* Update URL without full reload */
+    /* Telemetry deep links inherit shell context */
+    var EC = window.EdgeContext;
+    function href(path) {
+      return EC && EC.hrefWithContext
+        ? EC.hrefWithContext(path)
+        : path;
+    }
+    var hostL = $("linkHost");
+    var graphsL = $("linkGraphs");
+    var flowsL = $("linkFlows");
+    if (hostL) hostL.href = href("/host/");
+    if (graphsL) graphsL.href = href("/graphs/");
+    if (flowsL) flowsL.href = href("/flows/");
+
+    /* Update URL without full reload (keep location + router_id via EdgeContext) */
     try {
-      history.replaceState(null, "", "/devices/?id=" + encodeURIComponent(id));
+      var u = "/devices/?id=" + encodeURIComponent(id);
+      if (loc.router_id) u += "&router_id=" + encodeURIComponent(loc.router_id);
+      u += "&location=" + encodeURIComponent(id);
+      history.replaceState(null, "", u);
     } catch (e) { /* ignore */ }
   }
 
