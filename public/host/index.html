@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CPE host · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="host.css"/>
+</head>
+<body class="app-shell" data-nav="host" data-title="CPE host & Wi‑Fi"
+      data-subtitle="Live resources, per-core CPU, Wi‑Fi health, and forensics"
+      data-wide="1">
+  <header class="hidden">
+    <h1>CPE host & Wi‑Fi</h1>
+  </header>
+
+  <p class="hint" style="margin:0 0 0.75rem">
+    Prefer the composable
+    <a id="graphsWorkspaceLink" href="/graphs/">Graphs workspace</a>
+    for zoomable WebGPU charts (host · Wi‑Fi · flows).
+  </p>
+
+  <section class="card host-toolbar">
+    <div class="row host-toolbar-row">
+      <label>CPE
+        <input id="filterRouter" type="text" placeholder="router_id" style="min-width:10rem" autocomplete="off"/>
+      </label>
+      <label>Range
+        <select id="filterRange" title="Graph lookback window">
+          <option value="10" selected>Last 10 minutes</option>
+          <option value="30">Last 30 minutes</option>
+          <option value="120">Last 2 hours</option>
+          <option value="480">Last 8 hours</option>
+          <option value="1440">Last 24 hours</option>
+          <option value="2880">Last 48 hours</option>
+        </select>
+      </label>
+      <span class="hint" id="statusLine">Connecting…</span>
+    </div>
+  </section>
+
+  <!-- At-a-glance health: high usage / problems surface here -->
+  <section class="host-health" id="healthStrip" aria-label="Resource health summary">
+    <div class="host-health-card" id="healthCpu" data-level="ok">
+      <div class="hh-label">CPU (busiest core)</div>
+      <div class="hh-value" id="hhCpuVal">—</div>
+      <div class="hh-bar"><span id="hhCpuBar"></span></div>
+      <div class="hh-cap" id="hhCpuCap">max 100% busy per core</div>
+    </div>
+    <div class="host-health-card" id="healthMem" data-level="ok">
+      <div class="hh-label">Memory used</div>
+      <div class="hh-value" id="hhMemVal">—</div>
+      <div class="hh-bar"><span id="hhMemBar"></span></div>
+      <div class="hh-cap" id="hhMemCap">of total RAM</div>
+    </div>
+    <div class="host-health-card" id="healthLoad" data-level="ok">
+      <div class="hh-label">Load vs cores</div>
+      <div class="hh-value" id="hhLoadVal">—</div>
+      <div class="hh-bar"><span id="hhLoadBar"></span></div>
+      <div class="hh-cap" id="hhLoadCap">1.0 = fully busy on 1 core</div>
+    </div>
+    <div class="host-health-card" id="healthWifi" data-level="ok">
+      <div class="hh-label">Wi‑Fi channel</div>
+      <div class="hh-value" id="hhWifiVal">—</div>
+      <div class="hh-bar"><span id="hhWifiBar"></span></div>
+      <div class="hh-cap" id="hhWifiCap">util · interference risk</div>
+    </div>
+    <div class="host-health-card host-health-alerts" id="healthAlerts">
+      <div class="hh-label">Attention</div>
+      <ul class="hh-alert-list" id="hhAlertList">
+        <li class="hint">Waiting for samples…</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="host-grid">
+    <section class="card host-chart-card">
+      <div class="host-panel-head">
+        <div>
+          <h2>CPU by core</h2>
+          <p class="host-axis-hint">Y axis: % of that core busy (0–100). Window scrolls with time; right-edge value morphs smoothly (one sample behind).</p>
+        </div>
+        <span class="hint" id="cpuMeta">—</span>
+      </div>
+      <canvas id="cpuChart" width="900" height="248" data-h="248" aria-label="CPU per-core chart"></canvas>
+      <div class="host-legend" id="cpuLegend"></div>
+    </section>
+    <section class="card host-chart-card">
+      <div class="host-panel-head">
+        <div>
+          <h2>Memory</h2>
+          <p class="host-axis-hint">Y axis: % of total RAM used (0–100). Bar shows room left before OOM risk.</p>
+        </div>
+        <span class="hint" id="memMeta">—</span>
+      </div>
+      <canvas id="memChart" width="900" height="248" data-h="248" aria-label="Memory chart"></canvas>
+      <div class="host-legend">
+        <span class="leg leg-mem">used % of total RAM</span>
+        <span class="leg leg-max">100% = full (exhausted)</span>
+      </div>
+    </section>
+    <section class="card host-chart-card">
+      <div class="host-panel-head">
+        <div>
+          <h2>Network rate</h2>
+          <p class="host-axis-hint">Y axis: bits per second on non-loopback interfaces. Dashed line = peak in this window.</p>
+        </div>
+        <span class="hint" id="netMeta">—</span>
+      </div>
+      <canvas id="netChart" width="900" height="248" data-h="248" aria-label="Network rate chart"></canvas>
+      <div class="host-legend">
+        <span class="leg leg-rx">↓ receive (rx)</span>
+        <span class="leg leg-tx">↑ transmit (tx)</span>
+        <span class="leg leg-max">window peak (max)</span>
+      </div>
+    </section>
+    <section class="card host-chart-card">
+      <div class="host-panel-head">
+        <div>
+          <h2>Load average</h2>
+          <p class="host-axis-hint">Y axis: runnable tasks. Capacity line = n_cpus (all cores fully busy ≈ load n).</p>
+        </div>
+        <span class="hint" id="loadMeta">—</span>
+      </div>
+      <canvas id="loadChart" width="900" height="220" data-h="220" aria-label="Load chart"></canvas>
+      <div class="host-legend">
+        <span class="leg leg-l1">1 min</span>
+        <span class="leg leg-l5">5 min</span>
+        <span class="leg leg-l15">15 min</span>
+        <span class="leg leg-cap">core capacity (n_cpus)</span>
+      </div>
+    </section>
+    <section class="card host-chart-card host-chart-wide">
+      <div class="host-panel-head">
+        <div>
+          <h2>Wi‑Fi stations &amp; interference</h2>
+          <p class="host-axis-hint">
+            Left: station count. Right: channel util % (0–100 of airtime). Noise in dBm (higher = noisier).
+            Util &gt;70% or noise &gt;−80 dBm often means interference.
+          </p>
+        </div>
+        <span class="hint" id="wifiMeta">—</span>
+      </div>
+      <canvas id="wifiChart" width="900" height="248" data-h="248" aria-label="WiFi chart"></canvas>
+      <div class="host-legend">
+        <span class="leg leg-sta">stations (count)</span>
+        <span class="leg leg-util">channel util % of airtime</span>
+        <span class="leg leg-noise">noise floor (dBm)</span>
+        <span class="leg leg-warn">interference threshold (70% util)</span>
+      </div>
+    </section>
+  </div>
+
+  <section class="card host-clients-card">
+    <div class="host-panel-head">
+      <div>
+        <h2>Connected clients</h2>
+        <p class="host-axis-hint">
+          Live Wi‑Fi associations (1&nbsp;Hz into ClickHouse).
+          <strong>Click a client</strong> for coverage history (RSSI, link rate,
+          actual throughput) — ideal while walking rooms with a test phone.
+          Link TX/RX are PHY rates (capability-sanitized for QCA 10× inflate).
+          Thrput is real byte-counter bandwidth. Chain RSSI is per RF antenna.
+        </p>
+      </div>
+      <span class="hint" id="clientsMeta">—</span>
+    </div>
+    <div id="wifiAgentBanner" class="host-agent-banner hidden" role="status" aria-live="polite"></div>
+    <div class="table-wrap host-clients-wrap" id="clientsScroll">
+      <table class="data" id="clientsTable">
+        <thead>
+          <tr>
+            <th>MAC</th>
+            <th>Iface</th>
+            <th>Band</th>
+            <th>RSSI</th>
+            <th title="Per RF chain signal from iw/nl80211">Chain RSSI</th>
+            <th>SNR</th>
+            <th title="PHY link rate (TX to client)">Link TX</th>
+            <th title="PHY link rate (RX from client)">Link RX</th>
+            <th title="Actual throughput from byte counters">Thrput</th>
+            <th>Seen</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="10" class="hint">Waiting for station samples…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card host-proc-card">
+    <div class="host-panel-head">
+      <h2>Processes</h2>
+      <span class="hint" id="procMeta">—</span>
+    </div>
+    <p class="hint host-proc-hint">
+      High CPU / memory rows are highlighted. Click a row for history · table keeps your scroll while live data updates.
+    </p>
+    <div class="table-wrap host-proc-wrap" id="procScroll">
+      <table class="data" id="procTable">
+        <thead>
+          <tr>
+            <th data-sort="name">Name</th>
+            <th data-sort="pid">PID</th>
+            <th data-sort="vsize_kb">Virtual</th>
+            <th data-sort="rss_kb">Resident</th>
+            <th data-sort="cpu_pct">CPU %</th>
+            <th data-sort="cpu_time_ms">CPU time</th>
+            <th data-sort="start_unix">Started / age</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="host-events-grid">
+    <section class="card">
+      <div class="host-panel-head">
+        <h2>Wi‑Fi join / leave</h2>
+        <span class="hint" id="wifiEvMeta">forensic</span>
+      </div>
+      <div class="table-wrap" id="wifiEvScroll">
+        <table class="data" id="wifiEvTable">
+          <thead>
+            <tr><th>Time</th><th>Event</th><th>Iface</th><th>MAC</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <div class="host-panel-head">
+        <h2>ARP table changes</h2>
+        <span class="hint" id="arpEvMeta">forensic</span>
+      </div>
+      <div class="table-wrap" id="arpEvScroll">
+        <table class="data" id="arpEvTable">
+          <thead>
+            <tr><th>Time</th><th>Event</th><th>IP</th><th>MAC</th><th>Dev</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/ws_mux.js"></script>
+  <script src="host.js"></script>
+</body>
+</html>

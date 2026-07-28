@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Lab console · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell lab-wide" data-nav="lab" data-title="Lab console"
+      data-subtitle="Health, memory, APIs — engineering workspace"
+      data-wide="1">
+  <header class="hidden">
+    <h1>Lab console</h1>
+    <span id="authBadge" class="badge muted">not logged in</span>
+  </header>
+
+  <section class="card">
+    <h2>Health</h2>
+    <pre id="healthOut">…</pre>
+    <button type="button" id="btnHealth">Refresh /health</button>
+  </section>
+
+  <section class="card">
+    <h2>System memory impact</h2>
+    <p class="hint">
+      Hierarchical report from <code>GET /api/v1/debug/memory</code> (lab session).
+      Process VmRSS is kernel ground truth. Each module shows accounted heap and
+      per-item costs (E7 shelves/sessions, HTTP connections, state namespaces).
+      Set a baseline overnight to see which module grew.
+    </p>
+    <div class="row">
+      <button type="button" id="btnMemRefresh">Refresh memory</button>
+      <button type="button" id="btnMemBaseline" class="ghost">Set baseline</button>
+      <button type="button" id="btnMemClearBaseline" class="ghost">Clear baseline</button>
+      <label class="inline-check"><input type="checkbox" id="memAuto" checked/> Auto 5s</label>
+      <span id="memUpdated" class="badge muted">—</span>
+    </div>
+    <div id="memSummary" class="mem-summary">…</div>
+    <h3 class="subhead">Module share of accounted host heap</h3>
+    <canvas id="memBars" class="mem-bars" width="900" height="220" aria-label="Module memory bar chart"></canvas>
+    <div id="memModules" class="mem-modules"></div>
+    <details class="mem-raw-wrap">
+      <summary>Raw JSON</summary>
+      <pre id="memRaw" class="compact"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>CPU flame graph</h2>
+    <p class="hint">
+      In-process sampler: host loop tick (~100&nbsp;Hz while profiling) +
+      <code>backtrace()</code> / <code>dladdr</code> (no root). Optionally opens
+      <code>perf_event_open</code> when the kernel allows. For offline eBPF/perf
+      flame graphs, see capabilities JSON and <code>scripts/cpu-flame-perf.sh</code>
+      (<code>linux-perf</code> + Brendan Gregg FlameGraph scripts).
+    </p>
+    <div class="row">
+      <label>Seconds
+        <input id="cpuSecs" type="number" min="1" max="60" value="10" style="width:5rem;display:inline-block"/>
+      </label>
+      <label>Mode
+        <select id="cpuMode">
+          <option value="auto">auto (host tick)</option>
+          <option value="perf">perf_event probe + tick</option>
+        </select>
+      </label>
+      <button type="button" id="btnCpuStart">Start profile</button>
+      <button type="button" id="btnCpuRefresh" class="ghost">Refresh status</button>
+      <span id="cpuStatus" class="badge muted">idle</span>
+    </div>
+    <pre id="cpuCaps" class="compact">…</pre>
+    <canvas id="flameCanvas" class="flame-canvas" width="960" height="360" aria-label="CPU flame graph"></canvas>
+    <p id="flameTip" class="hint">Hover a frame for detail.</p>
+    <details>
+      <summary>Folded stacks</summary>
+      <pre id="cpuFolded" class="compact log"></pre>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Session</h2>
+    <p class="hint">Sign in on <a href="/">Home</a>. Debug APIs use the same session cookie.</p>
+    <div class="row">
+      <button type="button" id="btnMe" class="ghost">GET /auth/me</button>
+      <pre id="authOut" class="compact" style="flex:1;margin:0"></pre>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>State</h2>
+    <p class="hint">PUT/GET <code>/api/v1/state/{ns}/{key}</code></p>
+    <label>Namespace
+      <select id="stateNs">
+        <option value="net.core">net.core</option>
+        <option value="map.dynamic">map.dynamic</option>
+      </select>
+    </label>
+    <label>Key <input id="stateKey" type="text" value="router/lab-1"/></label>
+    <label>JSON body
+      <textarea id="stateBody" rows="3">{"id":"lab-1","status":"ok","updated_at":"2026-07-18T00:00:00Z"}</textarea>
+    </label>
+    <div class="row">
+      <button type="button" id="btnPut">PUT</button>
+      <button type="button" id="btnGet">GET</button>
+      <button type="button" id="btnList">LIST ns</button>
+    </div>
+    <pre id="stateOut"></pre>
+  </section>
+
+  <section class="card">
+    <h2>WebSocket stream</h2>
+    <p class="hint"><code>/api/v1/stream</code> — auto-connects for STATE_CHANGED fan-out (session cookie).</p>
+    <span id="wsBadge" class="badge muted">connecting…</span>
+    <pre id="wsOut" class="log"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Packages</h2>
+    <p class="hint">Static files under <code>/packages/</code> (auth required in lab_password mode).</p>
+    <pre id="pkgOut">…</pre>
+    <div class="row">
+      <button type="button" id="btnPkgIndex">Load /packages/index.json</button>
+      <a id="pkgManifest" href="/packages/fixture_basemap/manifest.json" target="_blank" rel="noopener">fixture manifest</a>
+    </div>
+  </section>
+
+  <section class="card muted">
+    <h2>OpenAI proxy (optional)</h2>
+    <p>Enable <code>plugins.openai_proxy.enabled</code> and set <code>OPENAI_API_KEY</code>.
+       Then <code>POST /v1/chat/completions</code> with the session cookie.</p>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/lab/console.js"></script>
+</body>
+</html>

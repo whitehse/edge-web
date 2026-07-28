@@ -1,0 +1,21 @@
+# Linked by scripts/link-demo-assets.sh from ~/libwebmap/demo (not vendored)
+/public/map/main.js
+/public/map/display
+/public/map/webmap.wasm
+/public/map/basemap
+/public/map/fiber_data
+/public/map/tiles_fiber
+/public/map/weather
+/public/map/dynamic
+/public/map/splice_diagrams
+
+# Linked from ~/libanim (local paths)
+/public/explain/fixtures/
+/public/explain/player/demo.js
+/public/explain/player/index.html
+/public/explain/templates/two_port_tap.tmpl
+
+.DS_Store
+.vscode/
+.idea/
+*.log

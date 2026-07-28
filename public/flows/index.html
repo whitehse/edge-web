@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CPE flows · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="flows.css"/>
+</head>
+<body class="app-shell" data-nav="flows" data-title="CPE flows"
+      data-subtitle="Overlay rates, client quality, and network defects over time"
+      data-wide="1">
+  <header class="hidden">
+    <h1>CPE flows</h1>
+  </header>
+
+  <p class="hint" style="margin:0 0 0.75rem">
+    Prefer the composable
+    <a id="graphsWorkspaceLink" href="/graphs/">Graphs workspace</a>
+    for zoomable WebGPU flow overlays and host panels together.
+  </p>
+
+  <!-- Compact filters (no login / no WS buttons) -->
+  <section class="card flow-toolbar">
+    <div class="row flow-toolbar-row">
+      <label>CPE
+        <input id="filterRouter" type="text" placeholder="router_id (optional)" autocomplete="off"/>
+      </label>
+      <label>Window
+        <select id="filterHours" title="Lookback for list + overlay">
+          <option value="1">1 hour</option>
+          <option value="6">6 hours</option>
+          <option value="12">12 hours</option>
+          <option value="24" selected>24 hours</option>
+          <option value="48">48 hours</option>
+        </select>
+      </label>
+      <label>Streams
+        <input id="filterLimit" type="number" value="40" min="1" max="200"/>
+      </label>
+      <label>Search
+        <input id="filterQ" type="text" placeholder="ip / flow_id" autocomplete="off"/>
+      </label>
+      <label>Sort
+        <select id="filterSort">
+          <option value="rate" selected>Highest rate</option>
+          <option value="bytes">Most bytes</option>
+          <option value="defects">Problems first</option>
+          <option value="recent">Most recent</option>
+        </select>
+      </label>
+      <span class="hint" id="statusLine">Connecting…</span>
+    </div>
+    <div class="flow-chips" id="labelChips" aria-label="Filter by remote network">
+      <button type="button" class="chip active" data-label="">All</button>
+      <button type="button" class="chip" data-label="netflix">Netflix</button>
+      <button type="button" class="chip" data-label="youtube">YouTube</button>
+      <button type="button" class="chip" data-label="akamai">Akamai</button>
+      <button type="button" class="chip" data-label="cloudflare">Cloudflare</button>
+      <button type="button" class="chip" data-label="google">Google</button>
+      <button type="button" class="chip" data-label="meta">Meta</button>
+      <button type="button" class="chip" data-label="amazon">Amazon</button>
+      <button type="button" class="chip" data-label="unknown">Unknown</button>
+    </div>
+  </section>
+
+  <!-- Client connectivity quality at a glance -->
+  <section class="card flow-clients-card" aria-label="Client connectivity">
+    <div class="flow-panel-head">
+      <div>
+        <h2>Clients right now</h2>
+        <p class="flow-axis-hint">LAN hosts with open streams — size ≈ activity, color ≈ quality (ok / watch / problem).</p>
+      </div>
+      <span class="hint" id="clientsMeta">—</span>
+    </div>
+    <div class="flow-client-strip" id="clientStrip" role="list"></div>
+  </section>
+
+  <!-- Time scrub + multi-flow overlay -->
+  <section class="card flow-overlay-card">
+    <div class="flow-panel-head">
+      <div>
+        <h2>Flow overlay</h2>
+        <p class="flow-axis-hint">
+          Top streams stacked in time. Shared dips or spikes across lines often share a path fault.
+          Defects are red marks on the timeline.
+        </p>
+      </div>
+      <span class="hint" id="overlayMeta">—</span>
+    </div>
+    <div class="flow-scrub">
+      <button type="button" class="ghost" id="btnLive" title="Jump to live">Live</button>
+      <input type="range" id="timeScrub" min="0" max="1000" value="1000" aria-label="Scrub time"/>
+      <span class="mono" id="scrubLabel">now</span>
+    </div>
+    <canvas id="overlayChart" width="960" height="220" aria-label="Multi-flow rate overlay"></canvas>
+    <div class="flow-overlay-legend" id="overlayLegend"></div>
+    <canvas id="defectTimeline" width="960" height="48" aria-label="Network defects timeline"></canvas>
+  </section>
+
+  <!-- Summary strip -->
+  <section class="flow-summary" id="flowSummary" aria-label="Flow health summary">
+    <div class="fs-card" id="fsTop">
+      <div class="fs-label">Top talker</div>
+      <div class="fs-value" id="fsTopVal">—</div>
+      <div class="fs-sub" id="fsTopSub">highest combined rate</div>
+    </div>
+    <div class="fs-card" id="fsBw">
+      <div class="fs-label">Live bandwidth</div>
+      <div class="fs-value" id="fsBwVal">—</div>
+      <div class="fs-sub" id="fsBwSub">sum of listed stream rates</div>
+    </div>
+    <div class="fs-card" id="fsDefects" data-level="ok">
+      <div class="fs-label">Defects</div>
+      <div class="fs-value" id="fsDefVal">—</div>
+      <div class="fs-sub" id="fsDefSub">retrans · rst · throttle · window</div>
+    </div>
+    <div class="fs-card fs-alerts">
+      <div class="fs-label">What to look at</div>
+      <ul class="fs-alert-list" id="fsAlertList">
+        <li class="hint">Waiting for streams…</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="flow-layout">
+    <section class="card flow-list-panel">
+      <div class="flow-panel-head">
+        <h2>Streams</h2>
+        <span class="hint" id="listMeta">j/k</span>
+      </div>
+      <div class="flow-stream-list" id="streamList" role="listbox" aria-label="Flow streams">
+        <div class="flow-empty hint">Loading streams…</div>
+      </div>
+    </section>
+
+    <section class="card flow-detail-panel" id="detailPanel">
+      <div class="flow-panel-head">
+        <h2 id="detailTitle">Select a stream</h2>
+        <span class="badge muted" id="detailBadge">—</span>
+      </div>
+      <div class="flow-defect-row" id="detailDefects" hidden></div>
+      <div class="flow-identity" id="detailIdentity">
+        <p class="hint">Pick a stream for detail. The overlay above already shows top talkers together.</p>
+      </div>
+      <div class="flow-chart-wrap">
+        <div class="flow-chart-title">
+          Bandwidth
+          <span class="hint" id="bwPointCount"></span>
+        </div>
+        <canvas id="rateChart" width="900" height="200" aria-label="Bandwidth chart"></canvas>
+        <div class="flow-chart-tip" id="chartTip" hidden></div>
+      </div>
+      <div class="flow-chart-wrap flow-chart-win">
+        <div class="flow-chart-title">TCP window</div>
+        <canvas id="winChart" width="900" height="120" aria-label="TCP window chart"></canvas>
+      </div>
+      <div class="flow-artifacts" id="detailArtifacts"></div>
+      <details class="flow-chunks-details">
+        <summary>Transfer chunks</summary>
+        <div class="table-wrap">
+          <table class="data" id="chunkTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>start</th>
+                <th>end</th>
+                <th>peak ↓</th>
+                <th>bytes ↓</th>
+                <th>samples</th>
+              </tr>
+            </thead>
+            <tbody id="chunkBody">
+              <tr><td colspan="6" class="hint">—</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/ws_mux.js"></script>
+  <script src="flows.js"></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Home · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell" data-nav="home" data-title="Home"
+      data-subtitle="Services, locations, and live edge status">
+
+  <!-- Signed-out gate (full viewport when not authenticated) -->
+  <div id="loginGate" class="auth-gate hidden">
+    <section class="card">
+      <p class="welcome">Welcome back</p>
+      <p class="hint" style="margin-bottom:1rem">
+        Sign in to the edge platform — network status, customer devices,
+        Call Home, and operator tools in one place.
+      </p>
+      <label>Password
+        <input id="labPw" type="password" value="lab" autocomplete="current-password"/>
+      </label>
+      <div class="row">
+        <button type="button" id="btnLogin" class="btn primary">Sign in</button>
+      </div>
+      <pre id="authOut" class="compact hidden"></pre>
+    </section>
+  </div>
+
+  <div id="dashRoot" class="hidden">
+    <div class="stat-row" id="statRow">
+      <div class="stat-card">
+        <div class="label">Locations</div>
+        <div class="value" id="statLocations">—</div>
+        <div class="delta">customer premises</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">ONTs online</div>
+        <div class="value" id="statOnts">—</div>
+        <div class="delta">from Call Home state</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Shelves</div>
+        <div class="value" id="statShelves">—</div>
+        <div class="delta">E7 / access gear</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Host health</div>
+        <div class="value" id="statHealth" style="font-size:1.25rem">—</div>
+        <div class="delta" id="statHealthMeta">/health</div>
+      </div>
+    </div>
+
+    <div class="split-2">
+      <section class="card">
+        <h2>Services</h2>
+        <p class="hint">Open a platform surface. Each service has its own workspace.</p>
+        <div class="service-grid" id="serviceGrid"></div>
+      </section>
+
+      <section class="card">
+        <h2>At a glance</h2>
+        <p class="hint">Recent focus and quick paths.</p>
+        <ul class="panel-list" id="glanceList">
+          <li>
+            <div>
+              <div class="pl-title">Status map</div>
+              <div class="pl-sub">Fiber & basemap — field context</div>
+            </div>
+            <a class="btn secondary" href="/map/">Open</a>
+          </li>
+          <li>
+            <div>
+              <div class="pl-title">Customer devices</div>
+              <div class="pl-sub">ONTs, home routers, premise gear</div>
+            </div>
+            <a class="btn secondary" href="/devices/">Browse</a>
+          </li>
+          <li>
+            <div>
+              <div class="pl-title">E7 Call Home</div>
+              <div class="pl-sub">Shelves, sessions, ONT inventory</div>
+            </div>
+            <a class="btn secondary" href="/e7/">Manage</a>
+          </li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="card">
+      <div class="device-head" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <h2 style="margin:0">Locations &amp; devices</h2>
+          <p class="hint" style="margin:0.35rem 0 0">
+            Premise equipment installed at member homes — ONT and customer router.
+          </p>
+        </div>
+        <a class="btn secondary" href="/devices/">View all</a>
+      </div>
+      <div class="device-grid" id="devicePreview" style="margin-top:1rem"></div>
+    </section>
+
+    <div class="row" style="margin-top:0.5rem">
+      <button type="button" id="btnLogout" class="ghost">Sign out (local)</button>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Documentation · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/explain/player/demo.css"/>
+  <style>
+    .doc-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
+      gap: 1rem;
+    }
+    @media (max-width: 960px) {
+      .doc-layout { grid-template-columns: 1fr; }
+    }
+    #auth-gate { max-width: 28rem; margin: 1rem auto; }
+    .hidden { display: none !important; }
+    .chapters { list-style: none; padding: 0; margin: 0; }
+    .chapters li {
+      border-left: 3px solid var(--border);
+      padding: 0.45rem 0.65rem;
+      margin: 0.35rem 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      cursor: pointer;
+      border-radius: 0 8px 8px 0;
+    }
+    .chapters li.active {
+      border-color: var(--accent);
+      color: var(--text);
+      background: color-mix(in srgb, var(--accent) 10%, transparent);
+    }
+    .doc-prose h2 { margin-top: 0; }
+    .doc-prose p, .doc-prose li { line-height: 1.55; color: var(--muted); }
+    .doc-prose strong { color: var(--text); }
+    .stage-stack { position: relative; }
+    #overlay {
+      position: absolute; inset: 0; pointer-events: none; width: 100%; height: auto;
+    }
+    #stage { width: 100%; height: auto; display: block; }
+    header.doc-top { display: none; }
+  </style>
+</head>
+<body class="app-shell home" data-nav="documentation" data-title="Documentation"
+      data-subtitle="Plant lessons and operator references" data-wide="1">
+  <div id="wrap" class="hidden">
+    <header class="doc-top">
+      <h1>Documentation</h1>
+      <span id="userBadge" class="badge ok"></span>
+    </header>
+
+    <div class="doc-layout">
+      <section class="card">
+        <h2>2-port optical tap</h2>
+        <p class="hint">
+          Interactive lesson (libanim) with optional <strong>voice narration</strong>
+          (browser text-to-speech). Play through downstream split, insertion loss,
+          ONT receive window, upstream aggregation, and rural design motivations.
+          Prefer Chrome/Edge; click Play once so the browser allows speech.
+        </p>
+        <div class="stage-stack">
+          <canvas id="stage" width="960" height="540" aria-label="Tap lesson animation"></canvas>
+          <canvas id="overlay" width="960" height="540" aria-hidden="true"></canvas>
+        </div>
+        <div class="transport">
+          <button id="btnPlay" type="button">Play</button>
+          <button id="btnPause" type="button">Pause</button>
+          <button id="btnRestart" type="button">Restart</button>
+          <label class="seek">
+            <span>Seek</span>
+            <input id="seek" type="range" min="0" max="1000" value="0"/>
+          </label>
+          <span id="timeLabel" class="time">0 / 0 ms</span>
+        </div>
+        <div class="transport voice-bar" style="margin-top:0.5rem;flex-wrap:wrap;gap:0.75rem;align-items:center">
+          <label title="Browser text-to-speech reads each narration cue">
+            <input type="checkbox" id="voiceEnabled" checked/>
+            Voice narration
+          </label>
+          <label title="Hold the animation while the current line is spoken">
+            <input type="checkbox" id="voiceHold" checked/>
+            Pause while speaking
+          </label>
+          <label>
+            Rate
+            <input type="range" id="voiceRate" min="0.7" max="1.4" step="0.05" value="1"/>
+          </label>
+          <button type="button" id="btnTestVoice" class="secondary">Test voice</button>
+          <button type="button" id="btnStopVoice" class="ghost">Stop voice</button>
+        </div>
+        <p id="modeLabel" class="mode">Engine: …</p>
+        <p id="voiceStatus" class="mode">Voice: …</p>
+        <p class="hint" style="margin-top:0.35rem">
+          If Test voice is silent: use Chrome/Edge, unmute the OS, and on Linux install
+          <code>speech-dispatcher</code> and <code>espeak-ng</code>, then restart the browser.
+        </p>
+        <div id="narration" class="narration" role="status" aria-live="polite">
+          Loading lesson…
+        </div>
+      </section>
+
+      <aside>
+        <section class="card">
+          <h2>Chapters</h2>
+          <ul class="chapters" id="chapters">
+            <li data-ms="0">1 · What is a 2-port tap</li>
+            <li data-ms="3500">2 · Downstream on the feeder</li>
+            <li data-ms="8000">3 · Asymmetric drop / through</li>
+            <li data-ms="12000">4 · Drop vs next span</li>
+            <li data-ms="15500">5 · Insertion loss</li>
+            <li data-ms="19000">6 · ONT Rx design window</li>
+            <li data-ms="24000">7 · Upstream aggregates at OLT</li>
+            <li data-ms="32000">8 · Why rural designs use taps</li>
+          </ul>
+        </section>
+
+        <section class="card doc-prose">
+          <h2>Key ideas</h2>
+          <ul>
+            <li><strong>Through</strong> keeps most power on the feeder; <strong>drop</strong> peels a smaller fraction to the premise.</li>
+            <li><strong>Asymmetry</strong> is intentional — unlike a balanced 1:N hut split.</li>
+            <li><strong>Insertion loss</strong> (dB) accumulates on every span, connector, and the tap itself.</li>
+            <li><strong>Rx window</strong> — design so ONT light lands between min and max with margin.</li>
+            <li><strong>Upstream</strong> — ONT bursts rejoin the feeder and are recovered at the OLT (optical tree + MAC scheduling).</li>
+            <li><strong>Rural</strong> — long linear routes and sparse homes favor cascaded taps over wasting budget on dense star splits.</li>
+          </ul>
+          <p class="hint">
+            Full write-up ships with libanim
+            (<code>docs/guides/two-port-tap.md</code>). Percent labels are teaching aids;
+            use vendor dB tables and measured Rx for live plant.
+          </p>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script type="module" src="./documentation.js"></script>
+</body>
+</html>

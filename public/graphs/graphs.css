@@ -1,0 +1,459 @@
+/* Graphs workspace — light panels, shared time bar, catalog picker */
+
+.graphs-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  align-items: flex-end;
+  margin-bottom: 0.75rem;
+}
+
+.graphs-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.graphs-toolbar input[type="text"],
+.graphs-toolbar select {
+  min-width: 9rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+}
+
+.graphs-toolbar .row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin-left: auto;
+}
+
+.graphs-timebar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, transparent);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+}
+
+.graphs-timebar .time-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.graphs-timebar .time-presets button {
+  font-size: 0.78rem;
+  padding: 0.28rem 0.55rem;
+}
+
+.graphs-timebar .time-presets button.active {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.graphs-timebar .btn-live.active {
+  background: color-mix(in srgb, var(--ok) 22%, transparent);
+  border-color: var(--ok);
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.graphs-timebar .btn-live.active.receiving {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 40%, transparent);
+}
+
+.graphs-timebar .btn-live.active.stalled {
+  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.graphs-timebar .time-scrub {
+  flex: 1 1 12rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 10rem;
+}
+
+.graphs-timebar .time-scrub input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.graphs-timebar .time-label {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-soft);
+  min-width: 11rem;
+}
+
+.graphs-timebar .render-chip,
+.graphs-timebar .feed-chip {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface-2);
+  white-space: nowrap;
+}
+
+.graphs-timebar .render-chip.gpu {
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--border));
+  color: var(--ok);
+}
+
+.graphs-timebar .feed-chip.receiving {
+  border-color: color-mix(in srgb, var(--ok) 55%, var(--border));
+  color: var(--ok);
+}
+
+.graphs-timebar .feed-chip.stalled {
+  border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
+  color: var(--warn);
+}
+
+.graphs-timebar .feed-chip.history {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.graphs-timebar .feed-chip .feed-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+  background: currentColor;
+  vertical-align: 0.05em;
+}
+
+.graphs-timebar .feed-chip.receiving .feed-dot {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 28%, transparent);
+  animation: feed-pulse 1.6s ease-out infinite;
+}
+
+@keyframes feed-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 45%, transparent); }
+  70% { box-shadow: 0 0 0 5px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.graphs-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.graph-panel {
+  padding: 0;
+  overflow: hidden;
+  transition: box-shadow 0.15s var(--ease);
+}
+
+.graph-panel.is-dragging {
+  opacity: 0.55;
+}
+
+.graph-panel.is-drop-target {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.graph-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
+}
+
+.graph-panel.is-collapsed .graph-panel-head {
+  border-bottom: none;
+}
+
+.graph-panel-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.graph-panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graph-panel-sub {
+  margin: 0.1rem 0 0;
+  font-size: 0.72rem;
+}
+
+.graph-panel-meta {
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.graph-panel-head .ghost {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.graph-panel-head .ghost:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.graph-drag {
+  cursor: grab;
+  font-size: 0.95rem !important;
+  letter-spacing: -0.05em;
+}
+
+.graph-panel-body {
+  padding: 0.35rem 0.5rem 0.55rem;
+}
+
+.graph-canvas-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--chart-plot);
+}
+
+.graph-canvas {
+  display: block;
+  width: 100%;
+  height: 220px;
+  cursor: grab;
+}
+
+.graph-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.85rem;
+  padding: 0.35rem 0.25rem 0;
+  min-height: 0.5rem;
+}
+
+.graph-leg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.graph-leg i {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+}
+
+.graphs-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--muted);
+}
+
+.graphs-empty h2 {
+  font-family: var(--font-display);
+  color: var(--text);
+  margin: 0 0 0.5rem;
+}
+
+/* Catalog modal
+ * Note: author `display: flex` must not override the HTML hidden attribute,
+ * or the dialog stays visible forever and Cancel appears broken. */
+.graphs-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.graphs-modal-backdrop[hidden] {
+  display: none !important;
+}
+
+.graphs-modal {
+  width: min(40rem, 100%);
+  max-height: min(36rem, 90vh);
+  overflow: auto;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem 1.15rem;
+}
+
+.graphs-modal h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-family: var(--font-display);
+}
+
+.graphs-modal .modal-section {
+  margin-bottom: 0.9rem;
+}
+
+.graphs-modal .modal-section h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.graphs-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.graphs-type-btn {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.graphs-type-btn:hover {
+  border-color: var(--accent);
+  background: var(--surface-hover);
+}
+
+.graphs-type-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.graphs-type-btn .tb-desc {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.graphs-type-btn.stub,
+.graphs-source-btn.stub {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.graphs-source-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+
+.graphs-source-btn {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.graphs-source-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--text);
+}
+
+.graphs-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+@media (max-width: 560px) {
+  .graphs-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.graphs-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.graphs-fields input,
+.graphs-fields select {
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 0.4rem 0.5rem;
+  font: inherit;
+}
+
+.graphs-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.graphs-stub-note {
+  font-size: 0.8rem;
+  color: var(--warn);
+  margin: 0.35rem 0 0;
+}
+
+.graphs-hint-bar {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.75rem;
+}

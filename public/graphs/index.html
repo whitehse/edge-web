@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Graphs · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="graphs.css"/>
+</head>
+<body class="app-shell" data-nav="graphs" data-title="Graphs"
+      data-subtitle="WebGPU time-series — zoom, pan, compose host · Wi‑Fi · flow panels"
+      data-wide="1">
+  <header class="hidden">
+    <h1>Graphs</h1>
+  </header>
+
+  <section class="card graphs-toolbar">
+    <label>CPE
+      <input id="filterRouter" type="text" list="routerRecent"
+             placeholder="e.g. router" autocomplete="off" spellcheck="false"/>
+      <datalist id="routerRecent"></datalist>
+    </label>
+    <div class="row-actions">
+      <button type="button" class="primary" id="btnApplyRouter">Apply CPE</button>
+      <button type="button" class="primary" id="btnAddGraph">+ Add graph</button>
+      <button type="button" class="ghost" id="btnResetLayout">Reset layout</button>
+      <span class="hint" id="statusLine">Connecting…</span>
+    </div>
+  </section>
+
+  <p class="graphs-hint-bar">
+    Wheel zooms time scale · drag pans · Shift-drag or scrub bar for cursor · double-click or <kbd>L</kbd> for live ·
+    ← → nudge · +/− zoom.
+    Green <strong>latest</strong> line = last sample; right edge <strong>LIVE</strong> when following now.
+    Layout is saved in this browser.
+  </p>
+
+  <section class="graphs-timebar" aria-label="Shared time window">
+    <div class="time-presets" id="timePresets"></div>
+    <button type="button" class="ghost btn-live" id="btnLive" title="Jump to live edge (L)">Live</button>
+    <div class="time-scrub">
+      <input type="range" id="timeScrub" min="0" max="1000" value="1000" aria-label="Scrub within window"/>
+      <span class="time-label mono" id="timeLabel">—</span>
+    </div>
+    <span class="feed-chip" id="feedChip" title="Telemetry feed health">Waiting for data…</span>
+    <span class="render-chip" id="renderChip" title="Chart renderer">…</span>
+  </section>
+
+  <div id="graphsEmpty" class="card graphs-empty" hidden>
+    <h2>No graphs yet</h2>
+    <p>Add host, Wi‑Fi, or flow charts for a CPE. Topology groups (PON, tap, border) are listed in the picker as coming soon.</p>
+    <button type="button" class="primary" id="btnEmptyAdd">+ Add graph</button>
+  </div>
+
+  <div class="graphs-stack" id="graphStack" aria-label="Graph panels"></div>
+
+  <!-- Catalog modal -->
+  <div class="graphs-modal-backdrop" id="catalogModal" hidden>
+    <div class="graphs-modal" role="dialog" aria-labelledby="catalogTitle">
+      <h2 id="catalogTitle">Add graph</h2>
+      <div class="modal-section">
+        <h3>Type</h3>
+        <div class="graphs-type-grid" id="typeGrid"></div>
+      </div>
+      <div class="modal-section">
+        <h3>Source</h3>
+        <div class="graphs-source-row" id="sourceRow"></div>
+        <p class="graphs-stub-note" id="stubNote" hidden></p>
+        <div class="graphs-fields" id="sourceFields"></div>
+      </div>
+      <div class="graphs-modal-actions">
+        <button type="button" class="ghost" id="btnModalCancel">Cancel</button>
+        <button type="button" class="primary" id="btnModalAdd">Add panel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/ws_mux.js"></script>
+  <script type="module" src="./graphs.js"></script>
+</body>
+</html>

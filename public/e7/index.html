@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>E7 Call Home · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell e7" data-nav="e7" data-title="E7 Call Home"
+      data-subtitle="Calix access shelves, sessions, ONTs, and commands"
+      data-wide="1">
+  <header class="hidden">
+    <h1>E7 Call Home</h1>
+    <span id="authBadge" class="badge muted">not logged in</span>
+  </header>
+
+  <section class="card banner-warn">
+    <h2>Allowlist durability</h2>
+    <p class="hint" style="margin:0">
+      REST allowlist edits update runtime state and are <strong>not written back
+      to YAML</strong>. Set <code>plugins.e7_callhome.allowlist_path</code> for
+      file durability across restarts (PR-10 interim). Without that path, only
+      YAML <code>shelves</code> + in-memory table apply after restart.
+    </p>
+  </section>
+
+  <section class="card">
+    <h2>Status</h2>
+    <p class="hint">GET <code>/api/v1/e7/status</code> — Call Home metrics.</p>
+    <div class="row">
+      <button type="button" id="btnStatus">Refresh status</button>
+    </div>
+    <div id="statusTableWrap" class="table-wrap">
+      <table class="data" id="statusTable">
+        <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+        <tbody id="statusBody"><tr><td colspan="2" class="muted-cell">…</td></tr></tbody>
+      </table>
+    </div>
+    <pre id="statusOut" class="compact hidden"></pre>
+  </section>
+
+  <section class="card" id="connLogCard">
+    <h2>Connection progress</h2>
+    <p class="hint" style="margin:0 0 0.5rem">
+      Live Call Home path: TCP accept → identity (Calix XML MAC <em>or</em>
+      Junos <code>DEVICE-CONN-INFO</code>) → allowlist → SSH client → NETCONF →
+      subscription.
+      Polls <code>GET /api/v1/e7/events?since=…</code> every second while logged in.
+      Shelves that never leave <strong>Inactive</strong> almost always fail in this log
+      (wrong MAC, disabled, identity timeout, SSH auth, etc.).
+    </p>
+    <div class="row" style="margin-top:0.35rem">
+      <button type="button" id="btnEventsRefresh">Refresh now</button>
+      <button type="button" id="btnEventsClear" class="ghost">Clear log view</button>
+      <label class="check-label" style="margin:0">
+        <input id="eventsAuto" type="checkbox" checked/> Auto-refresh
+      </label>
+      <span id="eventsBadge" class="badge muted">log off</span>
+      <span id="eventsMeta" class="hint" style="margin:0"></span>
+    </div>
+    <h3 class="subhead">In-flight sessions</h3>
+    <div class="table-wrap">
+      <table class="data" id="liveSessTable">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>MAC</th>
+            <th>Peer</th>
+            <th>Age</th>
+            <th>SSH</th>
+            <th>Allow</th>
+          </tr>
+        </thead>
+        <tbody id="liveSessBody">
+          <tr><td colspan="6" class="muted-cell">No in-flight sessions</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 class="subhead">Event log</h3>
+    <pre id="eventsLog" class="log events-log" aria-live="polite"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Shelves</h2>
+    <p class="hint">GET <code>/api/v1/e7/shelves</code> — MAC, label, enabled, session, serial/model.</p>
+    <div class="row">
+      <button type="button" id="btnShelves">Refresh shelves</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data" id="shelvesTable">
+        <thead>
+          <tr>
+            <th></th>
+            <th>MAC</th>
+            <th>Label</th>
+            <th>Enabled</th>
+            <th>Session</th>
+            <th>Serial</th>
+            <th>Model</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="shelvesBody">
+          <tr><td colspan="8" class="muted-cell">…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre id="shelvesOut" class="compact hidden"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Add / edit shelf</h2>
+    <p class="hint">
+      PUT <code>/api/v1/e7/shelves/{id}</code> — path id is Calix <strong>MAC</strong> or
+      Junos <strong>DEVICE-ID</strong>. For Junos Call Home, set vendor to
+      <code>junos</code> and optionally a shared <strong>secret</strong> matching
+      Junos <code>system services outbound-ssh client … secret</code> (HMAC of HOST-KEY).
+      Secret is optional if the router does not send HOST-KEY/HMAC.
+    </p>
+    <label>Vendor
+      <select id="shelfVendor">
+        <option value="calix">Calix E7</option>
+        <option value="junos">Juniper Junos</option>
+      </select>
+    </label>
+    <label>MAC / path id (required)
+      <input id="shelfMac" type="text" placeholder="00:02:5d:… or junos-device-id" autocomplete="off"/>
+    </label>
+    <label>Junos DEVICE-ID (if different from path)
+      <input id="shelfDeviceId" type="text" placeholder="optional; defaults to path id" autocomplete="off"/>
+    </label>
+    <label>Shared secret (Junos outbound-ssh secret, optional)
+      <input id="shelfSecret" type="password" placeholder="leave blank to keep / omit" autocomplete="new-password"/>
+    </label>
+    <label class="check-label">
+      <input id="shelfSecretClear" type="checkbox"/> Clear stored secret
+    </label>
+    <label>Label <input id="shelfLabel" type="text" placeholder="west hut / pe1" autocomplete="off"/></label>
+    <label class="check-label">
+      <input id="shelfEnabled" type="checkbox" checked/> Enabled
+    </label>
+    <div class="row">
+      <button type="button" id="btnShelfPut">Save (PUT)</button>
+      <button type="button" id="btnShelfLoad" class="ghost">Load selected into form</button>
+    </div>
+    <pre id="shelfFormOut" class="compact"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Shelf detail / ONTs</h2>
+    <p class="hint">
+      Select a shelf above, or enter MAC.
+      ONTs: GET <code>/api/v1/e7/shelves/{mac}/onts?limit=&amp;cursor=</code>.
+      Live updates via WS <code>/api/v1/stream</code> for <code>net.pon</code> keys under the shelf.
+    </p>
+    <label>Selected MAC <input id="detailMac" type="text" placeholder="00:02:5d:d9:21:47" autocomplete="off"/></label>
+    <div class="row">
+      <button type="button" id="btnDetail">Load detail</button>
+      <button type="button" id="btnOnts">Load ONTs</button>
+      <button type="button" id="btnOntsMore" class="ghost">Load more ONTs</button>
+      <span id="wsBadge" class="badge muted">ws off</span>
+    </div>
+    <pre id="detailOut" class="compact"></pre>
+    <p id="ontsPageHint" class="hint"></p>
+    <div class="table-wrap">
+      <table class="data" id="ontsTable">
+        <thead>
+          <tr>
+            <th>Key</th>
+            <th>ONT</th>
+            <th>PON</th>
+            <th>oper_state</th>
+            <th>event_time</th>
+          </tr>
+        </thead>
+        <tbody id="ontsBody">
+          <tr><td colspan="5" class="muted-cell">Select a shelf</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <pre id="wsOut" class="log"></pre>
+  </section>
+
+  <section class="card" id="configInvCard">
+    <h2>Config inventory</h2>
+    <p class="hint">
+      Capture running config via NETCONF <code>get-config</code>
+      (<code>POST …/config/capture</code>). edgehost stores JSON under
+      <code>var/e7_config/</code> and Postgres (<code>e7_shelf_config</code> /
+      <code>e7_ont_provision</code>), then lists account · FSAN · eth services.
+      Requires an <strong>OPEN</strong> Call Home session.
+    </p>
+    <label>MAC <input id="cfgMac" type="text" placeholder="(uses selected if empty)" autocomplete="off"/></label>
+    <div class="row">
+      <button type="button" id="btnCfgCapture">Capture running config</button>
+      <button type="button" id="btnCfgLoad" class="ghost">Load inventory</button>
+      <button type="button" id="btnCfgPoll" class="ghost">Poll capture</button>
+      <a class="btn secondary" id="cfgDownload" href="#" target="_blank" rel="noopener">Download full JSON</a>
+    </div>
+    <label>cmd_id <input id="cfgCmdId" type="text" placeholder="c00000001" autocomplete="off"/></label>
+    <label>Search (account / FSAN)
+      <input id="cfgSearch" type="text" placeholder="A-10428 or CXNK…" autocomplete="off"/>
+    </label>
+    <pre id="cfgOut" class="compact"></pre>
+    <div class="table-wrap">
+      <table class="data" id="cfgOntsTable">
+        <thead>
+          <tr>
+            <th>Account</th>
+            <th>FSAN</th>
+            <th>ONT</th>
+            <th>PON</th>
+            <th>Model</th>
+            <th>Eth ports / services</th>
+          </tr>
+        </thead>
+        <tbody id="cfgOntsBody">
+          <tr><td colspan="6" class="muted-cell">Capture or load inventory</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Command (advanced)</h2>
+    <p class="hint">
+      POST <code>/api/v1/e7/shelves/{mac}/commands</code> with
+      <code>{"op":"get-config"}</code> or <code>{"rpc_xml":"…"}</code>
+      (employee_admin; open session required). Prefer <strong>Config inventory</strong>
+      above for analyzed ONT/account/service views.
+    </p>
+    <label>MAC <input id="cmdMac" type="text" placeholder="(uses selected if empty)" autocomplete="off"/></label>
+    <label>Body JSON
+      <textarea id="cmdBody" rows="3">{"op":"get-config"}</textarea>
+    </label>
+    <div class="row">
+      <button type="button" id="btnCmdSubmit">Submit command</button>
+      <button type="button" id="btnCmdPoll" class="ghost">Poll last cmd_id</button>
+    </div>
+    <label>cmd_id <input id="cmdId" type="text" placeholder="c00000001" autocomplete="off"/></label>
+    <pre id="cmdOut" class="compact"></pre>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/e7/e7.js"></script>
+</body>
+</html>
