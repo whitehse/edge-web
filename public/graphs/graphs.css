@@ -132,6 +132,11 @@
   color: var(--warn);
 }
 
+.graphs-timebar .feed-chip.waiting {
+  color: var(--muted, #9a958c);
+  border-color: color-mix(in srgb, var(--muted, #9a958c) 40%, transparent);
+}
+
 .graphs-timebar .feed-chip.history {
   border-color: var(--border);
   color: var(--muted);

@@ -401,8 +401,12 @@ export function createAdapterHub(opts) {
     return { ok: ok, status: status, json: json, error: error };
   }
 
-  /* Match server MUX_HOST_LIMIT_MAX + /host/ seriesOpts.limit */
-  const HOST_LIMIT = 120;
+  /* Match server MUX_HOST_LIMIT_MAX + /host/ seriesOpts.limit (LiveFeed) */
+  const LF =
+    typeof window !== "undefined" && window.LiveFeed ? window.LiveFeed : null;
+  const HOST_LIMIT =
+    (LF && LF.HOST_SERIES_LIMIT) || 120;
+  const FEED_STALE_MS = (LF && LF.FEED_STALE_MS) || 15000;
 
   let lastRestError = "";
 
@@ -483,14 +487,17 @@ export function createAdapterHub(opts) {
   }
 
   /**
-   * Merge series by timestamp bucket. ALWAYS accumulate — never replace a
-   * buffer with a same-sized/shorter WS snapshot.
-   *
-   * Bug this fixes: each WS push often has only 2–4 recent buckets. The old
-   * logic did `if (next.length >= prev.length) replace`, so 3-point pushes
-   * kept wiping the buffer and history never grew past "3 samples · ws".
+   * Merge series by timestamp (shared LiveFeed.mergeByTimestamp when loaded).
+   * ALWAYS accumulate — never replace a buffer with a short WS tip.
    */
   function mergeByTimestamp(prev, next, lookbackMs) {
+    if (LF && typeof LF.mergeByTimestamp === "function") {
+      return LF.mergeByTimestamp(prev, next, lookbackMs, {
+        parseTs: parseTs,
+        limit: HOST_LIMIT * 3
+      });
+    }
+    /* Inline fallback if live_feed.js not on the page */
     const byT = Object.create(null);
     function ingest(list) {
       if (!list) return;
@@ -498,20 +505,16 @@ export function createAdapterHub(opts) {
         const p = list[i];
         const t = pointTime(p);
         if (!isFinite(t)) continue;
-        /* Key to second so CH bucket strings / ms normalize together */
-        const key = String(Math.round(t));
-        byT[key] = p;
+        byT[String(Math.round(t))] = p;
       }
     }
     ingest(prev);
     ingest(next);
-
     const keys = Object.keys(byT);
     if (!keys.length) return [];
     keys.sort(function (a, b) {
       return Number(a) - Number(b);
     });
-
     const latest = Number(keys[keys.length - 1]);
     const cutoff = Math.max(
       0,
@@ -523,13 +526,15 @@ export function createAdapterHub(opts) {
       if (t < cutoff) continue;
       out.push(byT[keys[i]]);
     }
-    /* Soft cap: keep newest HOST_LIMIT*3 after merge (chart downsamples) */
     const cap = HOST_LIMIT * 3;
     if (out.length > cap) return out.slice(out.length - cap);
     return out;
   }
 
   function lookbackMs() {
+    if (LF && typeof LF.lookbackFromMinutes === "function") {
+      return LF.lookbackFromMinutes(currentMinutes || 10);
+    }
     return Math.max(60_000, (currentMinutes || 10) * 60_000);
   }
 

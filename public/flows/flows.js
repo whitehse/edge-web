@@ -1960,6 +1960,8 @@
   }
 
   function bootLive() {
+    /* Re-watch list/series on every WS open — server drops watches (same
+     * LiveFeed contract as /host/ and /graphs/). */
     EdgeMux.onStatus(function (st) {
       state.wsStatus = st;
       setStatus("ws " + st);

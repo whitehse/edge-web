@@ -54,20 +54,12 @@
    * (~3s at 1s agent / 2s UI poll). Matches hostapd disassociate. */
   var STA_MISS_DROP = 3;
 
-  /* Live tip morph duration (ms). Matches ~WS push interval so the head
-   * arrives as the next sample is about to land. */
-  var LIVE_MORPH_MS = 1800;
-  /* How far the right edge may lead the latest sample (ms). Caps the
-   * "empty runway" so a brief ingest pause does not look like missing data. */
-  var LIVE_LEAD_MS = 2500;
-  /*
-   * "Stalled" means the *WebSocket feed* stopped, not that the last chart
-   * point's timestamp is a few seconds old. Host series points are
-   * time-bucketed (toStartOfInterval), so sample timestamps can legitimately
-   * lag wall-clock by a full bucket (2s @ 10m … minutes @ 24h). Using sample
-   * age alone caused a false "Live feed stalled" banner every few seconds.
-   */
-  var PUSH_STALE_MS = 15000; /* no host/wifi WS body for this long → stalled */
+  /* Shared live-strip constants (public/live_feed.js). Fallbacks if script missing. */
+  var LF = window.LiveFeed || {};
+  var LIVE_MORPH_MS = LF.LIVE_MORPH_MS || 1600;
+  var LIVE_LEAD_MS = LF.LIVE_LEAD_MS || 2500;
+  var PUSH_STALE_MS = LF.FEED_STALE_MS || 15000;
+  var HOST_SERIES_LIMIT = LF.HOST_SERIES_LIMIT || 120;
 
   function $(id) {
     return document.getElementById(id);
@@ -83,11 +75,41 @@
 
   function parseTs(ts) {
     if (ts == null || ts === "") return NaN;
-    if (typeof ts === "number") return ts;
-    var s = String(ts).trim().replace(" ", "T");
-    if (!/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) s += "Z";
-    var ms = Date.parse(s);
-    return isNaN(ms) ? NaN : ms;
+    if (typeof ts === "number") {
+      return ts > 0 && ts < 1e12 ? ts * 1000 : ts;
+    }
+    var s = String(ts).trim();
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      var n = Number(s);
+      return n > 0 && n < 1e12 ? n * 1000 : n;
+    }
+    var t = Date.parse(s);
+    if (!isNaN(t)) return t;
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
+      t = Date.parse(s.replace(" ", "T") + "Z");
+    }
+    return isNaN(t) ? NaN : t;
+  }
+
+  /**
+   * Accumulate host/wifi series (shared LiveFeed.mergeByTimestamp).
+   * Fixes WS tip-only frames wiping a full REST-seeded history.
+   */
+  function mergeSeriesPts(prev, next) {
+    var lookback =
+      typeof LF.lookbackFromMinutes === "function"
+        ? LF.lookbackFromMinutes(state.minutes)
+        : Math.max(60000, (state.minutes || 10) * 60000);
+    if (typeof LF.mergeByTimestamp === "function") {
+      return LF.mergeByTimestamp(prev, next, lookback, {
+        parseTs: parseTs,
+        limit: HOST_SERIES_LIMIT * 3
+      });
+    }
+    /* Fallback: prefer longer buffer (legacy) */
+    if (!next || !next.length) return prev || [];
+    if (!prev || !prev.length) return next.slice();
+    return next.length >= prev.length ? next.slice() : prev;
   }
 
   function fmtLocalTs(ts, style) {
@@ -365,7 +387,7 @@
       router_id: ($("filterRouter").value || "").trim(),
       minutes: minutes,
       hours: Math.max(1, Math.ceil(minutes / 60)),
-      limit: 120
+      limit: HOST_SERIES_LIMIT
     };
   }
 
@@ -550,7 +572,20 @@
     if (opts.t1 != null && isFinite(opts.t1)) t1 = opts.t1;
 
     if (live && ext) {
-      if (stale) {
+      if (typeof LF.liveWindow === "function") {
+        var lw = LF.liveWindow({
+          nowMs: nowMs,
+          durationMs: winMs,
+          dataEndMs: dataEnd,
+          lastPushMs: lastPush,
+          leadMs: LIVE_LEAD_MS,
+          staleMs: PUSH_STALE_MS
+        });
+        t0 = lw.t0;
+        t1 = lw.t1;
+        stale = lw.stale;
+        feedAge = lw.feedAgeMs;
+      } else if (stale) {
         /* WS feed stalled — pin to last sample so the chart doesn't empty. */
         t1 = dataEnd + LIVE_LEAD_MS;
         t0 = t1 - winMs;
@@ -1011,15 +1046,19 @@
       .then(function (d) {
         if (!d || d.ok === false || !Array.isArray(d.points)) return;
         if (!d.points.length) return; /* never wipe last-good */
-        state.hostPts = d.points;
+        state.hostPts = mergeSeriesPts(state.hostPts, d.points);
         state.lastHostPushMs = Date.now();
-        var lt = parseTs(d.points[d.points.length - 1].ts);
+        var lt = parseTs(
+          state.hostPts.length
+            ? state.hostPts[state.hostPts.length - 1].ts
+            : d.points[d.points.length - 1].ts
+        );
         if (!isNaN(lt)) state.lastSampleMs = lt;
         state.metaDirty = true;
         status(
           "host " +
-            d.points.length +
-            " pts · REST fallback · last sample " +
+            state.hostPts.length +
+            " pts · REST merge · last sample " +
             Math.round((Date.now() - state.lastSampleMs) / 1000) +
             "s ago"
         );
@@ -1042,7 +1081,7 @@
       .then(function (d) {
         if (!d || d.ok === false || !Array.isArray(d.points) || !d.points.length)
           return;
-        state.wifiPts = d.points;
+        state.wifiPts = mergeSeriesPts(state.wifiPts, d.points);
         state.lastWifiPushMs = Date.now();
         state.metaDirty = true;
       })
@@ -2475,9 +2514,14 @@
         if (!state.hostPts.length) restPollHost();
         return;
       }
-      state.hostPts = body.points;
+      /* Merge tip-only WS frames into history (LiveFeed.mergeByTimestamp). */
+      state.hostPts = mergeSeriesPts(state.hostPts, body.points);
       state.lastHostPushMs = Date.now();
-      var lt = parseTs(body.points[body.points.length - 1].ts);
+      var lt = parseTs(
+        state.hostPts.length
+          ? state.hostPts[state.hostPts.length - 1].ts
+          : body.points[body.points.length - 1].ts
+      );
       if (!isNaN(lt)) state.lastSampleMs = lt;
       scheduleCharts();
       var lag =
@@ -2495,7 +2539,7 @@
     } else if (msg.op === "wifi") {
       if (body.ok === false || !Array.isArray(body.points)) return;
       if (!body.points.length) return;
-      state.wifiPts = body.points;
+      state.wifiPts = mergeSeriesPts(state.wifiPts, body.points);
       state.lastWifiPushMs = Date.now();
       scheduleCharts();
     } else if (msg.op === "wifi_stations") {
@@ -2563,7 +2607,14 @@
       return;
     }
     var opts = seriesOpts();
+    /* Without CPE, skip unfiltered watch (mixed multi-router series). */
+    if (!opts.router_id) {
+      status("no CPE — pick a location in the top bar");
+      return;
+    }
     EdgeMux.watch("host", "all", opts);
+    /* REST bootstrap every subscribe / reconnect (seed merge buffer). */
+    restPollHost();
     var p;
     for (p in state.expanded) {
       if (state.expanded[p]) requestProcSeries(p);

@@ -13,8 +13,8 @@ Living checklist for the browser project and interaction redesign.
 - [x] Slice 1: shell + **location-first** global context (`EdgeContext`)
 - [x] Wire host / flows / graphs + devices to shared context
 - [x] Light nav grouping (Telemetry / Access gear)
-- [ ] Unify live-strip vs history interaction across graphs/host/flows (slice 2)
-- [ ] Document per-page WS subscription matrix (which channels each route needs)
+- [x] Slice 2: unify live-strip / merge / reconnect (`live_feed.js`)
+- [x] Document per-page WS subscription matrix (live-telemetry guide)
 - [ ] Decide auth UX (lab password vs proxy headers) for multi-page flows
 - [ ] Map page: live `map.dynamic` via WS feed + highlight selected location
 - [ ] Inventory API replaces static `context_catalog.js`

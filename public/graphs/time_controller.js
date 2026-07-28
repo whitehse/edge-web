@@ -9,10 +9,13 @@
 
 const MIN_DUR = 15_000;
 const MAX_DUR = 48 * 3600_000;
+/** Shared with /host/ via window.LiveFeed when available. */
+const LF =
+  typeof window !== "undefined" && window.LiveFeed ? window.LiveFeed : null;
 /** How far the right edge may lead the latest sample (ms). */
-const LIVE_LEAD_MS = 2500;
+const LIVE_LEAD_MS = (LF && LF.LIVE_LEAD_MS) || 2500;
 /** No feed for this long → pin window to last sample (don't empty the chart). */
-const FEED_STALE_MS = 15000;
+const FEED_STALE_MS = (LF && LF.FEED_STALE_MS) || 15000;
 
 export function createTimeController(opts) {
   opts = opts || {};

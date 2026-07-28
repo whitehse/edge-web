@@ -70,7 +70,8 @@ async function boot() {
   const feedChip = $("feedChip");
   const filterRouter = $("filterRouter");
   const presetRow = $("timePresets");
-  const PUSH_STALE_MS = 15000;
+  const LF = window.LiveFeed || null;
+  const PUSH_STALE_MS = (LF && LF.FEED_STALE_MS) || 15000;
 
   /* recent routers into datalist */
   const dl = $("routerRecent");
@@ -240,6 +241,9 @@ async function boot() {
   function feedReceiving(s) {
     /* Prefer WS push age; fall back to sample age if no push tracked yet. */
     const push = hub.latestPush();
+    if (LF && typeof LF.isPushStale === "function") {
+      if (push > 0) return !LF.isPushStale(push, Date.now(), PUSH_STALE_MS);
+    }
     if (push > 0) {
       return Date.now() - push < PUSH_STALE_MS;
     }
@@ -250,6 +254,7 @@ async function boot() {
   }
 
   function fmtAge(ms) {
+    if (LF && typeof LF.fmtAge === "function") return LF.fmtAge(ms);
     if (!isFinite(ms) || ms < 0) return "—";
     if (ms < 1000) return "<1s";
     if (ms < 60000) return Math.round(ms / 1000) + "s";
@@ -307,17 +312,38 @@ async function boot() {
         : "Go live";
     }
     if (feedChip) {
-      feedChip.classList.remove("receiving", "stalled", "history");
+      feedChip.classList.remove("receiving", "stalled", "history", "waiting");
       const restErr =
         hub.getLastError && typeof hub.getLastError === "function"
           ? hub.getLastError()
           : "";
       const cpe = hub.getRouter ? hub.getRouter() : "";
-      if (!push && !s.dataEndMs) {
-        feedChip.className = "feed-chip";
+      /* Shared LiveFeed chip labels (same semantics as /host/). */
+      if (LF && typeof LF.feedChip === "function" && !restErr) {
+        const chip = LF.feedChip({
+          lastPushMs: push,
+          dataEndMs: s.dataEndMs,
+          sampleCount: 0,
+          routerId: cpe,
+          live: s.live,
+          requireRouter: true
+        });
+        const kind =
+          chip.kind === "receiving"
+            ? "receiving"
+            : chip.kind === "stalled"
+              ? "stalled"
+              : chip.kind === "waiting"
+                ? "waiting"
+                : "history";
+        feedChip.className = "feed-chip " + kind;
+        feedChip.innerHTML =
+          '<span class="feed-dot"></span>' + chip.text;
+      } else if (!push && !s.dataEndMs) {
+        feedChip.className = "feed-chip waiting";
         if (!cpe) {
           feedChip.innerHTML =
-            '<span class="feed-dot"></span>Set CPE + Apply…';
+            '<span class="feed-dot"></span>Select a location (top bar)…';
         } else if (restErr) {
           feedChip.className = "feed-chip stalled";
           feedChip.innerHTML =

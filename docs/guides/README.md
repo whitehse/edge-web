@@ -5,6 +5,7 @@ Feature how-tos for the browser UI. Prefer short, task-oriented pages.
 | Guide | Topic |
 |-------|--------|
 | [operator-context.md](operator-context.md) | Location-first CPE context (shell + deep links) |
+| [live-telemetry.md](live-telemetry.md) | Live-strip, merge-by-ts, reconnect contract |
 
 Existing deep guides may still live under `~/edgehost/docs/guides/` until
 migrated here as the redesign lands:

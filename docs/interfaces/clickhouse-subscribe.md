@@ -28,7 +28,7 @@ edge-web page adapters (merge-by-timestamp into client buffers)
 | Live interval | Target **~1 second** for host/wifi-style series (implementation may be 1–2 s; document per channel) |
 | Bootstrap | REST GET of recent window so the chart is not empty before first push |
 | Reconnect | Re-issue `watch` + REST bootstrap (server watches are connection-scoped) |
-| Merge rule | Client **merges by timestamp**; a short tip must not wipe a long buffer |
+| Merge rule | Client **merges by timestamp**; a short tip must not wipe a long buffer (`public/live_feed.js`) |
 
 ## Subscribe model (mux)
 
