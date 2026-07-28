@@ -61,7 +61,7 @@ Full contracts: [docs/interfaces/](docs/interfaces/).
 | URL | Purpose |
 |-----|---------|
 | `/` | Home + lab login |
-| `/map/` | Status map (libwebmap) |
+| `/map/` | Status map (libwebmap) — live `map.dynamic` WS + inventory seed |
 | `/graphs/` | Composable live charts workspace |
 | `/host/` | CPE host + Wi‑Fi forensics |
 | `/flows/` | Flow list / series |
@@ -76,7 +76,10 @@ Redesign may reorganize routes; record decisions under `docs/decisions/`.
 | File | Role |
 |------|------|
 | `public/ws_mux.js` | Single shared WS (`EdgeMux`) to `/api/v1/stream?topics=mux,state` |
-| `public/shell.js` | Shared nav / chrome |
+| `public/shell.js` | Shared nav / chrome + location-first context picker |
+| `public/context.js` | `EdgeContext` persistence + URL sync |
+| `public/context_catalog.js` | Locations from `/inventory/locations.json` |
+| `public/live_feed.js` | Live-strip merge / reconnect contract |
 | `public/charts/*` | WebGPU + Canvas2D time-series views |
 
 ## Absences (by design)

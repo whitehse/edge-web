@@ -122,12 +122,14 @@
     <div>
       <span class="title">Status map</span>
       <span class="meta" id="mapUser"></span>
+      <span class="meta" id="mapContext" hidden style="margin-left:0.5rem;color:#e6b84d"></span>
     </div>
-    <div class="row" style="margin:0">
+    <div class="row" style="margin:0;gap:0.75rem;flex-wrap:wrap">
       <a href="/">Home</a>
-      <a href="/devices/">Devices</a>
+      <a id="mapLinkDevices" href="/devices/">Devices</a>
+      <a id="mapLinkGraphs" href="/graphs/">Graphs</a>
+      <a id="mapLinkHost" href="/host/">Host</a>
       <a href="/e7/">E7</a>
-      <a href="/junos/">Junos</a>
       <a href="/lab/">Lab</a>
     </div>
   </div>
@@ -157,6 +159,12 @@
         <p><strong>Controls</strong>: drag pan · wheel zoom · hover magnifier · click fiber for path-trace · Esc clears path</p>
         <p class="glass-muted">Data linked from libwebmap demo by <code>run-status-map.sh</code>. If tiles fail to load, re-run the script from the edgehost repo root.</p>
         <h3>Dynamic feed</h3>
+        <p class="glass-muted" style="font-size:0.8rem;margin:0 0 0.35rem">
+          Live <code>map.dynamic</code> via WebSocket
+          (<code>/api/v1/stream?topics=state</code>). Inventory premises are
+          seeded as points; selected location is highlighted. Override with
+          <code>?feed=0</code> (off) or <code>?feed=./dynamic/sample_events.jsonl</code>.
+        </p>
         <div id="dynamic-feed-hud" class="glass-hud">—</div>
         <h3>Memory</h3>
         <div id="mem-hud" class="glass-hud">—</div>
@@ -166,6 +174,9 @@
     </aside>
   </div>
 
+  <script src="/app.js"></script>
+  <script src="/context_catalog.js"></script>
+  <script src="/context.js"></script>
   <script type="module" src="./map_boot.js"></script>
 </body>
 </html>

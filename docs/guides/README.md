@@ -6,6 +6,8 @@ Feature how-tos for the browser UI. Prefer short, task-oriented pages.
 |-------|--------|
 | [operator-context.md](operator-context.md) | Location-first CPE context (shell + deep links) |
 | [live-telemetry.md](live-telemetry.md) | Live-strip, merge-by-ts, reconnect contract |
+| [status-map-live.md](status-map-live.md) | Map WS feed, premise seed, focus highlight |
+| [inventory.md](inventory.md) | Locations JSON for context + map |
 
 Existing deep guides may still live under `~/edgehost/docs/guides/` until
 migrated here as the redesign lands:

@@ -366,6 +366,19 @@
     EC.onChange(function (c) {
       paintContextUi(c);
     });
+    /* Inventory catalog may load after first paint */
+    if (global.EdgeContextCatalog && typeof global.EdgeContextCatalog.onChange === "function") {
+      global.EdgeContextCatalog.onChange(function () {
+        paintContextUi(EC.get());
+      });
+    }
+    try {
+      global.addEventListener("edgecatalog:change", function () {
+        paintContextUi(EC.get());
+      });
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   function setAuthUi(ok, label, sub, roles) {
@@ -425,6 +438,11 @@
   /**
    * Ensure session exists. On non-home pages, redirect to /?next=… when
    * unauthenticated. Returns true if authenticated.
+   *
+   * Auth UX (ADR-005):
+   *  - lab_password: Home is the only login form; other pages bounce with next=
+   *  - proxy_headers: reverse proxy injects identity; /auth/me succeeds without UI
+   *  - open: /auth/me succeeds without cookie (lab); no gate
    */
   async function requireAuth() {
     var ok = await refreshAuth();

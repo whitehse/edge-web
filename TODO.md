@@ -15,10 +15,11 @@ Living checklist for the browser project and interaction redesign.
 - [x] Light nav grouping (Telemetry / Access gear)
 - [x] Slice 2: unify live-strip / merge / reconnect (`live_feed.js`)
 - [x] Document per-page WS subscription matrix (live-telemetry guide)
-- [ ] Decide auth UX (lab password vs proxy headers) for multi-page flows
-- [ ] Map page: live `map.dynamic` via WS feed + highlight selected location
-- [ ] Inventory API replaces static `context_catalog.js`
+- [x] Auth UX ADR (Home-only login · next= · open/proxy/lab modes)
+- [x] Map: live `map.dynamic` WS feed + inventory seed + focus highlight
+- [x] Inventory JSON API (`/inventory/locations.json` → catalog)
 - [ ] Optional: build step / module packaging ADR if the site outgrows static JS
+- [ ] Postgres-backed inventory endpoint (same JSON shape)
 
 ## Contract follow-ups (need edgehost when wire changes)
 

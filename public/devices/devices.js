@@ -243,9 +243,25 @@
   refresh();
 
   var params = new URLSearchParams(location.search);
-  var id = params.get("id");
+  var id = params.get("id") || params.get("location");
   if (id && findLoc(id)) {
     showDetail(id);
+  }
+
+  /* Inventory may arrive after first paint */
+  if (window.EdgeContextCatalog && EdgeContextCatalog.onChange) {
+    EdgeContextCatalog.onChange(function () {
+      refresh();
+      var cur = params.get("id") || params.get("location");
+      if (cur && findLoc(cur) && $("detailView") && !$("detailView").classList.contains("hidden")) {
+        showDetail(cur);
+      }
+    });
+  }
+  if (window.EdgeContextCatalog && EdgeContextCatalog.ready) {
+    EdgeContextCatalog.ready().then(function () {
+      refresh();
+    });
   }
 
   /* Soft auth check — still usable in open mode */

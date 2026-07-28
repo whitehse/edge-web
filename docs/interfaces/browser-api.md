@@ -79,6 +79,22 @@ Large basemap tiles may be served under `/map/…` (linked demo assets) or
 `/packages/`. Auth for map data is currently UI-gated; hardening belongs in
 edgehost + an edge-web decision when routes change.
 
+## Inventory (browser-facing)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/inventory/locations.json` | Premise list (`v`, `locations[]`) — ADR-006 |
+
+## Map dynamic state
+
+| Method | Path | Notes |
+|--------|------|-------|
+| GET | `/api/v1/state/map.dynamic` | List keys (`?prefix=`) |
+| GET/PUT/DELETE | `/api/v1/state/map.dynamic/{key}` | Feature JSON (geom Point/LineString/…) |
+| WS | `/api/v1/stream?topics=state` | `STATE_CHANGED` for `map.dynamic` |
+
+Map boot defaults `?feed=` to that WebSocket URL (libwebmap dynamic_feed).
+
 ## Operator context (browser-only)
 
 Not an edgehost API — client state for which premise/CPE the UI is focused on.

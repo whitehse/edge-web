@@ -16,3 +16,6 @@
 | **pqproxy** | L7 Postgres proxy for CPE (lab **18081**); operators do not use it from the browser |
 | **subscribe** | Browser asks edgehost to push a channel on an interval or on events |
 | **notify** | Server-initiated WS frame (state change or series push) |
+| **inventory** | Premise list (`/inventory/locations.json`) feeding EdgeContext + map |
+| **map.dynamic** | State ns for live map overlays (WS STATE_CHANGED + REST) |
+| **focus feature** | `feature/focus/selected` highlight for the active location |
