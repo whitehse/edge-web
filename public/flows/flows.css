@@ -283,222 +283,448 @@
 /* ── Layout ─────────────────────────────────────────────── */
 .flow-layout {
   display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
-  gap: 0.75rem;
+  grid-template-columns: minmax(22rem, 28rem) minmax(0, 1fr);
+  gap: 1.25rem;
   align-items: start;
   min-height: 20rem;
   margin-bottom: 2rem;
 }
 
-@media (max-width: 960px) {
-  .flow-layout { grid-template-columns: 1fr; }
+@media (max-width: 1100px) {
+  .flow-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .flow-panel-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.85rem;
 }
 
 .flow-panel-head h2 {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 1.05rem;
+  font-size: 1.1rem;
 }
 
-.flow-list-panel,
 .flow-detail-panel {
-  padding: 0.85rem 1rem;
+  padding: 1rem 1.15rem 1.2rem;
 }
 
-.flow-stream-list {
-  max-height: min(70vh, 36rem);
-  overflow: auto;
+/* ═══════════════════════════════════════════════════════════
+   Streams list panel (fl-*) — stacked cards, no overlapping
+
+   CRITICAL: app.css sets `button { display: inline-flex;
+   align-items: center }` which lays multi-child buttons out
+   in a ROW. All fl- buttons must force column + stretch.
+   ═══════════════════════════════════════════════════════════ */
+
+.fl-panel {
+  padding: 1.1rem 1.15rem 1.25rem;
+  min-width: 0;
+}
+
+.fl-list {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  border-radius: var(--radius-sm);
+  /* Prefer margins over gap — more predictable with button descendants */
+  gap: 0;
+  max-height: min(74vh, 48rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0.25rem 0.25rem 0.75rem 0;
+  scrollbar-gutter: stable;
 }
 
-.flow-empty {
-  padding: 1rem 0.25rem;
-}
-
-/* Client groups */
-.flow-client-group {
-  border: 1px solid var(--border-soft);
-  border-radius: var(--radius-sm);
-  margin-bottom: 0.35rem;
-  overflow: hidden;
-}
-
-.flow-client-head {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.55rem;
-  background: var(--surface-2);
-  cursor: pointer;
-  font-size: 0.82rem;
-  user-select: none;
-}
-
-.flow-client-head .chev {
-  color: var(--faint);
-  font-size: 0.7rem;
-  width: 0.9rem;
-}
-
-.flow-client-head .cip {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.flow-client-head .cmeta {
+.fl-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  line-height: 1.55;
   color: var(--muted);
-  font-size: 0.72rem;
 }
 
-/* Stream rows (rendered by flows.js) */
-.flow-stream {
+/* One LAN client = one outer card */
+.fl-group {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  overflow: visible;
+  margin: 0 0 1.15rem 0;
+  flex: 0 0 auto;
+}
+
+.fl-group:last-child {
+  margin-bottom: 0.25rem;
+}
+
+/* Reset global button chrome — these are layout cards, not CTAs */
+.fl-group-hd,
+.fl-card {
+  /* Override app.css button { display:inline-flex; align-items:center } */
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
+  gap: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: 1.4;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  filter: none !important;
+  transform: none !important;
+  white-space: normal;
+  height: auto;
+  min-height: 0;
+  max-width: none;
+}
+
+.fl-group-hd {
+  padding: 0.95rem 1.05rem;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  border-radius: 0;
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+}
+
+.fl-group.is-collapsed .fl-group-hd {
+  border-bottom: 0;
+}
+
+.fl-group-hd:hover {
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2)) !important;
+  filter: none !important;
+}
+
+.fl-group-hd:active,
+.fl-card:active {
+  transform: none !important;
+}
+
+.fl-group-hd-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.fl-group-chev {
+  flex: 0 0 auto;
+  width: 1rem;
+  color: var(--faint);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.fl-group-ip {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.fl-group.has-defect .fl-group-ip { color: var(--warn); }
+.fl-group.sev-bad .fl-group-ip { color: var(--bad); }
+
+.fl-group-sub {
+  display: block;
+  margin: 0.4rem 0 0 1.55rem;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.fl-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0.9rem;
+  background: color-mix(in srgb, var(--bg) 40%, var(--surface));
+}
+
+/* One remote stream — fully vertical stack */
+.fl-card {
+  padding: 1rem 1.05rem 1.05rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  margin: 0 0 0.85rem 0;
+  flex: 0 0 auto;
+  transition:
+    border-color 0.15s var(--ease),
+    background 0.15s var(--ease),
+    box-shadow 0.2s var(--ease);
+}
+
+.fl-group-body > .fl-card:last-child {
+  margin-bottom: 0;
+}
+
+.fl-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface)) !important;
+  filter: none !important;
+}
+
+.fl-card.is-selected {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 11%, var(--surface)) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.fl-card.is-fresh {
+  animation: fl-fresh 0.85s var(--ease);
+}
+
+@keyframes fl-fresh {
+  0% { box-shadow: 0 0 0 2px color-mix(in srgb, var(--ok) 40%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.fl-card.has-defect .fl-card-name { color: var(--warn); }
+.fl-card.sev-bad .fl-card-name { color: var(--bad); }
+
+.fl-card-head {
   display: block;
   width: 100%;
-  text-align: left;
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  padding: 0.45rem 0.55rem 0.45rem 0.75rem;
-  border-top: 1px solid var(--border-soft);
-  cursor: pointer;
-  font-size: 0.82rem;
+  margin: 0 0 0.75rem 0;
+  min-width: 0;
 }
 
-.flow-stream:hover {
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
-}
-
-.flow-stream.selected {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
-.flow-stream-row {
+.fl-card-head-top {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
-  gap: 0.25rem 0.55rem;
-  align-items: baseline;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  margin: 0 0 0.4rem 0;
+  width: 100%;
 }
 
-.flow-stream-label {
+.fl-card-name {
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+  word-break: break-word;
+  flex: 1 1 auto;
+  min-width: 6rem;
+}
+
+.fl-pill {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: var(--surface-2);
+  line-height: 1.2;
+  flex: 0 0 auto;
+}
+
+.fl-pill.is-live {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 35%, var(--border));
+}
+
+.fl-pill-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: fl-pulse 1.4s ease-out infinite;
+  flex: 0 0 auto;
+}
+
+@keyframes fl-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ok) 55%, transparent); }
+  70% { box-shadow: 0 0 0 0.35rem transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+.fl-card-ip {
+  display: block;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-soft);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+.fl-card-rates {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: 100%;
+  margin: 0;
+}
+
+.fl-rate {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.fl-rate-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.fl-rate-dir {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
+  flex: 0 0 auto;
+}
+
+.fl-rate-num {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
   font-weight: 500;
   color: var(--text);
+  text-align: right;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.flow-stream-remote {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-soft);
-}
-
-.flow-stream-rates {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
-.flow-stream-proto { font-size: 0.7rem; }
-
-.flow-usage-bar {
-  height: 3px;
+.fl-bar {
+  display: block;
+  height: 7px;
+  width: 100%;
+  border-radius: 999px;
   background: var(--border-soft);
-  border-radius: 2px;
-  margin-top: 0.3rem;
   overflow: hidden;
+  flex: 0 0 auto;
 }
 
-.flow-usage-bar > span {
+.fl-bar > i {
   display: block;
   height: 100%;
-  background: color-mix(in srgb, var(--accent) 55%, transparent);
-  border-radius: 2px;
+  border-radius: 999px;
+  transition: width 0.4s var(--ease);
 }
 
-.flow-stream-tags {
-  margin-top: 0.2rem;
-  font-size: 0.7rem;
+.fl-bar.is-down > i {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 35%, transparent), var(--accent));
 }
 
-.flow-stream.has-defect .flow-stream-label { color: var(--warn); }
-.flow-stream.has-defect.sev-bad .flow-stream-label { color: var(--bad); }
+.fl-bar.is-up > i {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-2) 35%, transparent), var(--accent-2));
+}
 
-.flow-client-head {
+.fl-card-tags {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.75rem 0 0 0;
   width: 100%;
-  padding: 0.4rem 0.55rem;
-  background: var(--surface-2);
-  border: 0;
-  color: inherit;
-  font: inherit;
-  font-size: 0.82rem;
-  cursor: pointer;
-  text-align: left;
 }
 
-.flow-client-chev {
-  color: var(--faint);
-  font-size: 0.7rem;
-  width: 0.9rem;
-}
-
-.flow-client-id {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.flow-client-sum {
-  color: var(--muted);
-  font-size: 0.72rem;
-}
-
-.flow-client-group.has-defect .flow-client-id { color: var(--warn); }
-
-.flow-tag {
+.fl-tag {
   display: inline-block;
-  font-size: 0.65rem;
-  padding: 0.08rem 0.35rem;
-  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
   border: 1px solid var(--border);
   color: var(--text-soft);
-  background: var(--surface);
+  background: var(--surface-2);
+  line-height: 1.25;
 }
 
+.fl-tag.tag-retrans,
+.fl-tag.tag-rst {
+  border-color: color-mix(in srgb, var(--bad) 40%, var(--border));
+  color: var(--bad);
+}
+.fl-tag.tag-throttle,
+.fl-tag.tag-asymm {
+  border-color: color-mix(in srgb, var(--warn) 40%, var(--border));
+  color: var(--warn);
+}
+.fl-tag.tag-hot {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  color: var(--accent);
+}
+
+.status-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--ok);
+  font-weight: 500;
+}
+
+.status-live::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: var(--ok);
+  animation: fl-pulse 1.4s ease-out infinite;
+}
+
+#statusLine {
+  min-height: 1.2em;
+}
+
+/* Legacy severity hooks still used by detail panel tags */
+.flow-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 500;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  background: var(--surface-2);
+  line-height: 1.2;
+}
 .tag-retrans, .tag-rst { border-color: color-mix(in srgb, var(--bad) 40%, var(--border)); color: var(--bad); }
 .tag-throttle, .tag-asymm { border-color: color-mix(in srgb, var(--warn) 40%, var(--border)); color: var(--warn); }
 .tag-hot { border-color: color-mix(in srgb, var(--accent) 40%, var(--border)); color: var(--accent); }
 .tag-closed { opacity: 0.75; }
-
-.class-ott, .class-cdn, .class-dns, .class-cloud {
-  font-size: 0.65rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--faint);
-}
 
 .flow-defect-row {
   display: flex;

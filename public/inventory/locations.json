@@ -10,7 +10,7 @@
       "account": "A-10428",
       "region": "North ridge",
       "installed": "2024-03-12",
-      "router_id": "router",
+      "router_id": "cpe-lab",
       "lon": -95.992,
       "lat": 36.124,
       "ont": {
@@ -23,11 +23,11 @@
         "vendor": "Calix"
       },
       "router": {
-        "router_id": "router",
+        "router_id": "cpe-lab",
         "model": "prplOS CPE",
         "status": "online",
         "mac": "02:1a:2b:3c:4d:5e",
-        "software": "cpe_agent · OpenWrt",
+        "software": "cpe_agent · OpenWrt · callhome",
         "wan": "GPON · DHCP",
         "last_seen": "moments ago"
       }

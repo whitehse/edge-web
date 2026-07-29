@@ -19,7 +19,9 @@
     t1: null,
     clientFilter: "", /* filter list by lan_ip when pill clicked */
     overlayTimer: null,
-    overlayBusy: false
+    overlayBusy: false,
+    prevRates: {}, /* flowKey -> combined rate for flash-on-change */
+    ageTicker: null
   };
 
   var OVERLAY_COLORS = [
@@ -76,6 +78,25 @@
     if (w <= 0) return "—";
     if (w < 1024) return w + " B";
     return (w / 1024).toFixed(1) + " KiB";
+  }
+
+  /** Relative age for live UI (e.g. "live", "3s", "2m"). */
+  function fmtAge(ts, nowMs) {
+    var t = parseTs(ts);
+    if (isNaN(t)) return "—";
+    var sec = Math.max(0, ((nowMs || Date.now()) - t) / 1000);
+    if (sec < 3) return "live";
+    if (sec < 60) return Math.floor(sec) + "s";
+    if (sec < 3600) return Math.floor(sec / 60) + "m";
+    if (sec < 86400) return Math.floor(sec / 3600) + "h";
+    return Math.floor(sec / 86400) + "d";
+  }
+
+  function ratePct(bps, maxBps) {
+    maxBps = maxBps || 1;
+    bps = Number(bps) || 0;
+    if (maxBps <= 0) return 0;
+    return Math.min(100, (bps / maxBps) * 100);
   }
 
   function protoName(p) {
@@ -566,131 +587,190 @@
 
   function renderList(flows) {
     var root = $("streamList");
+    if (!root) return;
     var scrollTop = root.scrollTop;
+    var nowMs = Date.now();
     if (!flows || !flows.length) {
       root.innerHTML =
-        '<div class="flow-empty hint">No streams yet — waiting for live data…</div>';
+        '<div class="fl-empty">No streams yet — waiting for live data…</div>';
       renderClientStrip([]);
       return;
     }
     var ordered = sortedFlows(flows);
     var maxR = maxRateAmong(ordered) || 1;
+    var maxDown = 1;
+    var maxUp = 1;
+    var mi;
+    for (mi = 0; mi < ordered.length; mi++) {
+      maxDown = Math.max(maxDown, Number(ordered[mi].rate_down_bps) || 0);
+      maxUp = Math.max(maxUp, Number(ordered[mi].rate_up_bps) || 0);
+    }
     var groups = groupFlowsByClient(ordered);
     var html = "";
     var gi, i;
+    var nextRates = {};
     for (gi = 0; gi < groups.keys.length; gi++) {
       var ck = groups.keys[gi];
       var g = groups.map[ck];
       var collapsed = isGroupCollapsed(ck);
       var gFlows = sortedFlows(g.flows);
-      var title =
-        ck === "unknown"
-          ? "Unknown client"
-          : ck;
+      var gSev = 0;
+      for (i = 0; i < gFlows.length; i++) {
+        gSev = Math.max(gSev, analyzeFlow(gFlows[i], maxR).sev);
+      }
+      var title = ck === "unknown" ? "Unknown client" : ck;
       var sub =
         gFlows.length +
         " stream" +
         (gFlows.length === 1 ? "" : "s") +
         " · " +
         fmtRate(g.rate) +
-        (g.defects ? " · " + g.defects + " issue" + (g.defects === 1 ? "" : "s") : "");
+        (g.defects
+          ? " · " + g.defects + " issue" + (g.defects === 1 ? "" : "s")
+          : "");
       html +=
-        '<div class="flow-client-group' +
+        '<section class="fl-group' +
         (ck === "unknown" ? " is-unknown" : "") +
         (g.defects ? " has-defect" : "") +
+        (gSev >= 2 ? " sev-bad" : "") +
         (collapsed ? " is-collapsed" : "") +
         '" data-client="' +
         esc(ck) +
         '">' +
-        '<button type="button" class="flow-client-head" data-client="' +
+        '<button type="button" class="fl-group-hd" data-client="' +
         esc(ck) +
         '" aria-expanded="' +
         (collapsed ? "false" : "true") +
         '">' +
-        '<span class="flow-client-chev" aria-hidden="true">' +
+        '<div class="fl-group-hd-row">' +
+        '<span class="fl-group-chev" aria-hidden="true">' +
         (collapsed ? "▸" : "▾") +
         "</span>" +
-        '<span class="flow-client-id">' +
+        '<span class="fl-group-ip">' +
         esc(title) +
         "</span>" +
-        '<span class="flow-client-sum">' +
+        "</div>" +
+        '<div class="fl-group-sub">' +
         esc(sub) +
-        "</span>" +
+        "</div>" +
         "</button>" +
-        '<div class="flow-client-streams"' +
+        '<div class="fl-group-body"' +
         (collapsed ? " hidden" : "") +
         ">";
       for (i = 0; i < gFlows.length; i++) {
         var f = gFlows[i];
         var key = flowKey(f);
-        var sel = key === state.selectedKey ? " selected" : "";
+        var sel = key === state.selectedKey ? " is-selected" : "";
         var lab = f.remote_label || "unknown";
-        var cls = f.remote_class || "other";
         var info = analyzeFlow(f, maxR);
         var defectCls =
           info.sev > 0
             ? " has-defect" + (info.sev >= 2 ? " sev-bad" : "")
             : "";
-        var pct = Math.min(100, (info.rate / maxR) * 100);
-        var tagBits = [];
+        var age = fmtAge(f.ts, nowMs);
+        var isLive = age === "live";
+        var comb = totalRate(f);
+        nextRates[key] = comb;
+        var fresh =
+          state.prevRates[key] != null &&
+          Math.abs(state.prevRates[key] - comb) > 1
+            ? " is-fresh"
+            : "";
+        var downPct = ratePct(f.rate_down_bps, maxDown);
+        var upPct = ratePct(f.rate_up_bps, maxUp);
+        var remote =
+          (f.remote_ip || "?") + (f.remote_port ? ":" + f.remote_port : "");
+        var tagsHtml = "";
         var ti;
-        for (ti = 0; ti < Math.min(2, info.tags.length); ti++) {
-          tagBits.push(info.tags[ti].text);
+        for (ti = 0; ti < Math.min(3, info.tags.length); ti++) {
+          var tg = info.tags[ti];
+          tagsHtml +=
+            '<span class="fl-tag ' +
+            esc(tg.cls || "") +
+            '">' +
+            esc(tg.text) +
+            "</span>";
         }
         html +=
-          '<button type="button" class="flow-stream flow-stream-compact' +
+          '<button type="button" class="fl-card' +
           sel +
           defectCls +
+          fresh +
           '" data-key="' +
           esc(key) +
+          '" data-ts="' +
+          esc(f.ts || "") +
           '">' +
-          '<div class="flow-stream-row">' +
-          '<span class="flow-stream-label ' +
-          labelClass(cls) +
-          '">' +
+          '<div class="fl-card-head">' +
+          '<div class="fl-card-head-top">' +
+          '<span class="fl-card-name">' +
           esc(lab) +
           "</span>" +
-          '<span class="flow-stream-remote">' +
-          esc(f.remote_ip || "?") +
-          (f.remote_port ? ":" + f.remote_port : "") +
-          "</span>" +
-          '<span class="flow-stream-rates">' +
-          "↓" +
-          esc(fmtRate(f.rate_down_bps)) +
-          " ↑" +
-          esc(fmtRate(f.rate_up_bps)) +
-          "</span>" +
-          '<span class="hint flow-stream-proto">' +
+          '<span class="fl-pill">' +
           esc(protoName(f.proto)) +
           "</span>" +
+          (isLive
+            ? '<span class="fl-pill is-live" data-live-pill>' +
+              '<span class="fl-pill-dot" aria-hidden="true"></span>' +
+              '<span data-age>live</span></span>'
+            : '<span class="fl-pill" data-live-pill><span data-age>' +
+              esc(age) +
+              "</span></span>") +
           "</div>" +
-          '<div class="flow-usage-bar"><span style="width:' +
-          pct.toFixed(1) +
-          '%"></span></div>' +
-          (tagBits.length
-            ? '<div class="flow-stream-tags hint">' +
-              esc(tagBits.join(" · ")) +
-              "</div>"
+          '<div class="fl-card-ip">' +
+          esc(remote) +
+          "</div>" +
+          "</div>" +
+          '<div class="fl-card-rates">' +
+          '<div class="fl-rate">' +
+          '<div class="fl-rate-row">' +
+          '<span class="fl-rate-dir">Down</span>' +
+          '<span class="fl-rate-num">' +
+          esc(fmtRate(f.rate_down_bps)) +
+          "</span></div>" +
+          '<div class="fl-bar is-down"><i style="width:' +
+          downPct.toFixed(1) +
+          '%"></i></div>' +
+          "</div>" +
+          '<div class="fl-rate">' +
+          '<div class="fl-rate-row">' +
+          '<span class="fl-rate-dir">Up</span>' +
+          '<span class="fl-rate-num">' +
+          esc(fmtRate(f.rate_up_bps)) +
+          "</span></div>" +
+          '<div class="fl-bar is-up"><i style="width:' +
+          upPct.toFixed(1) +
+          '%"></i></div>' +
+          "</div>" +
+          "</div>" +
+          (tagsHtml
+            ? '<div class="fl-card-tags">' + tagsHtml + "</div>"
             : "") +
           "</button>";
       }
-      html += "</div></div>";
+      html += "</div></section>";
     }
     root.innerHTML = html;
     root.scrollTop = scrollTop;
-    root.querySelectorAll(".flow-client-head").forEach(function (btn) {
+    state.prevRates = nextRates;
+    root.querySelectorAll(".fl-group-hd").forEach(function (btn) {
       btn.addEventListener("click", function (ev) {
         ev.preventDefault();
         toggleGroup(btn.getAttribute("data-client"));
       });
     });
-    root.querySelectorAll(".flow-stream").forEach(function (btn) {
+    root.querySelectorAll(".fl-card").forEach(function (btn) {
       btn.addEventListener("click", function () {
         selectKey(btn.getAttribute("data-key"));
       });
     });
     if ($("listMeta")) {
-      $("listMeta").textContent =
+      var newest = newestFlowMs(ordered);
+      var ageSec = newest ? Math.max(0, (nowMs - newest) / 1000) : 0;
+      $("listMeta").innerHTML =
+        (ageSec < 3
+          ? '<span class="status-live">live</span> · '
+          : "") +
         groups.keys.length +
         " client" +
         (groups.keys.length === 1 ? "" : "s") +
@@ -701,6 +781,36 @@
     renderSummary(ordered);
     renderClientStrip(ordered);
     scheduleOverlayRefresh();
+    ensureAgeTicker();
+  }
+
+  function tickStreamAges() {
+    var root = $("streamList");
+    if (!root) return;
+    var nowMs = Date.now();
+    root.querySelectorAll(".fl-card[data-ts]").forEach(function (el) {
+      var ageEl = el.querySelector("[data-age]");
+      var pill = el.querySelector("[data-live-pill]");
+      if (!ageEl || !pill) return;
+      var age = fmtAge(el.getAttribute("data-ts"), nowMs);
+      var isLive = age === "live";
+      ageEl.textContent = age;
+      pill.classList.toggle("is-live", isLive);
+      var dot = pill.querySelector(".fl-pill-dot");
+      if (isLive && !dot) {
+        var d = document.createElement("span");
+        d.className = "fl-pill-dot";
+        d.setAttribute("aria-hidden", "true");
+        pill.insertBefore(d, ageEl);
+      } else if (!isLive && dot) {
+        dot.remove();
+      }
+    });
+  }
+
+  function ensureAgeTicker() {
+    if (state.ageTicker) return;
+    state.ageTicker = setInterval(tickStreamAges, 1000);
   }
 
   function renderClientStrip(flows) {
@@ -1182,13 +1292,158 @@
     selectKey(flowKey(ordered[idx]));
   }
 
+  function newestFlowMs(flows) {
+    var newest = 0;
+    var i;
+    for (i = 0; i < (flows || []).length; i++) {
+      var t = parseTs(flows[i].ts) || 0;
+      if (t > newest) newest = t;
+    }
+    return newest;
+  }
+
+  function setRouterHint(html, visible) {
+    var el = $("flowRouterHint");
+    if (!el) return;
+    if (!visible) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = html;
+  }
+
+  /** REST list — works even if WS mux is slow/blocked; also used for recovery. */
+  function bootstrapListFromRest() {
+    var body = filterBody();
+    var q =
+      "/api/v1/flows?hours=" +
+      encodeURIComponent(body.hours || 24) +
+      "&limit=" +
+      encodeURIComponent(body.limit || 40);
+    if (body.router_id) {
+      q += "&router_id=" + encodeURIComponent(body.router_id);
+    }
+    if (body.label) {
+      q += "&label=" + encodeURIComponent(body.label);
+    }
+    if (body.q) {
+      q += "&q=" + encodeURIComponent(body.q);
+    }
+    return fetch(q, { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (j) {
+        if (!j || j.ok === false) {
+          return null;
+        }
+        onFlowsMsg({ op: "list", body: j });
+        return j;
+      })
+      .catch(function () {
+        return null;
+      });
+  }
+
+  /**
+   * If the selected CPE filter has no live streams, discover routers that do
+   * (common lab mistake: EdgeContext still on fixture id "router").
+   */
+  function recoverLiveRouters(currentRid) {
+    return fetch("/api/v1/flows?hours=1&limit=80", {
+      credentials: "same-origin"
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (j) {
+        var flows = (j && j.flows) || [];
+        var by = {};
+        var i;
+        var now = Date.now();
+        for (i = 0; i < flows.length; i++) {
+          var rid = flows[i].router_id || "";
+          if (!rid) continue;
+          var t = parseTs(flows[i].ts) || 0;
+          if (!by[rid] || t > by[rid]) by[rid] = t;
+        }
+        var live = Object.keys(by)
+          .filter(function (r) {
+            return now - by[r] < 120000; /* <2 min */
+          })
+          .sort(function (a, b) {
+            return by[b] - by[a];
+          });
+        if (!live.length) {
+          setRouterHint(
+            "No live flow samples in the last 2 minutes for any CPE. " +
+              "On the agent enable <code>flow_acct.enabled: true</code> and " +
+              "<code>sysctl net.netfilter.nf_conntrack_acct=1</code>.",
+            true
+          );
+          return;
+        }
+        if (currentRid && live.indexOf(currentRid) >= 0) {
+          setRouterHint("", false);
+          return;
+        }
+        var links = live
+          .map(function (r) {
+            return (
+              '<button type="button" class="chip flow-router-pick" data-rid="' +
+              esc(r) +
+              '">' +
+              esc(r) +
+              "</button>"
+            );
+          })
+          .join(" ");
+        setRouterHint(
+          (currentRid
+            ? "Filter <code>" +
+              esc(currentRid) +
+              "</code> has no live streams. "
+            : "") +
+            "Live CPEs with flows: " +
+            links +
+            ' · or clear the CPE box for all. Lab call-home id is usually <code>cpe-lab</code>.',
+          true
+        );
+      })
+      .catch(function () {
+        /* ignore */
+      });
+  }
+
   function startWatch() {
     var body = filterBody();
     if ($("filterSort")) {
       state.sortMode = $("filterSort").value || "rate";
     }
-    EdgeMux.watch("flows", "list", body);
-    setStatus("ws " + state.wsStatus + " · watching list…");
+    /* Immediate REST fill so the list is not blank while WS connects. */
+    bootstrapListFromRest().then(function (j) {
+      var flows = (j && j.flows) || [];
+      var newest = newestFlowMs(flows);
+      var age = newest ? (Date.now() - newest) / 1000 : 1e9;
+      if (
+        body.router_id &&
+        (!flows.length || age > 120)
+      ) {
+        recoverLiveRouters(body.router_id);
+      } else if (!body.router_id && (!flows.length || age > 120)) {
+        recoverLiveRouters("");
+      } else {
+        setRouterHint("", false);
+      }
+    });
+    if (window.EdgeMux) {
+      EdgeMux.watch("flows", "list", body);
+      setStatus("ws " + state.wsStatus + " · watching list…");
+    } else {
+      setStatus("REST list (no EdgeMux)");
+    }
   }
 
   function watchSeries(f) {
@@ -1242,16 +1497,35 @@
         return;
       }
       state.flows = body.flows || [];
-      setStatus(
-        "ws " +
-          state.wsStatus +
-          " · " +
+      var newestMs = 0;
+      var si;
+      for (si = 0; si < state.flows.length; si++) {
+        var tms = parseTs(state.flows[si].ts) || 0;
+        if (tms > newestMs) newestMs = tms;
+      }
+      var ageSec = newestMs ? Math.max(0, (Date.now() - newestMs) / 1000) : 0;
+      var ageNote = "";
+      if (!state.flows.length) {
+        ageNote =
+          " · no streams (agent needs flow_acct.enabled + nf_conntrack_acct=1)";
+      } else if (ageSec > 120) {
+        ageNote =
+          " · data " +
+          (ageSec > 3600
+            ? Math.floor(ageSec / 3600) + "h"
+            : Math.floor(ageSec / 60) + "m") +
+          " old (not live — check CPE flow_acct)";
+      }
+      if ($("statusLine")) {
+        $("statusLine").innerHTML =
+          (ageSec < 3
+            ? '<span class="status-live">live</span> · '
+            : "ws " + state.wsStatus + " · ") +
           state.flows.length +
           " streams · " +
-          new Date().toLocaleTimeString()
-      );
-      $("listMeta").textContent =
-        state.flows.length + " streams · j/k · live (scroll kept)";
+          new Date().toLocaleTimeString() +
+          ageNote;
+      }
       renderList(state.flows);
       if (state.selectedKey) {
         /* keep selection; series watch continues */
@@ -1871,9 +2145,31 @@
       startWatch();
     }
     applyContextToFilter();
+    /* Migrate lab fixture id "router" → live call-home id "cpe-lab". */
+    if (
+      $("filterRouter") &&
+      $("filterRouter").value === "router" &&
+      window.EdgeContext &&
+      EdgeContext.setRouter
+    ) {
+      EdgeContext.setRouter("cpe-lab", { source: "flows-migrate" });
+      $("filterRouter").value = "cpe-lab";
+    }
     if (window.EdgeContext && EdgeContext.onChange) {
       EdgeContext.onChange(function (c) {
         applyContextToFilter(c);
+        rewatch();
+      });
+    }
+    if ($("flowRouterHint")) {
+      $("flowRouterHint").addEventListener("click", function (ev) {
+        var btn = ev.target.closest(".flow-router-pick");
+        if (!btn) return;
+        var rid = btn.getAttribute("data-rid") || "";
+        if ($("filterRouter")) $("filterRouter").value = rid;
+        if (window.EdgeContext && EdgeContext.setRouter) {
+          EdgeContext.setRouter(rid, { source: "user" });
+        }
         rewatch();
       });
     }

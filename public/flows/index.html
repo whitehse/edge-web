@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>CPE flows · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
-  <link rel="stylesheet" href="flows.css"/>
+  <link rel="stylesheet" href="flows.css?v=fl3"/>
 </head>
 <body class="app-shell" data-nav="flows" data-title="CPE flows"
       data-subtitle="Overlay rates, client quality, and network defects over time"
@@ -18,13 +18,16 @@
     Prefer the composable
     <a id="graphsWorkspaceLink" href="/graphs/">Graphs workspace</a>
     for zoomable WebGPU flow overlays and host panels together.
+    Lab call-home CPE id is usually <code>cpe-lab</code> (not the old fixture
+    id <code>router</code>).
   </p>
+  <div id="flowRouterHint" class="hint" hidden style="margin:0 0 0.75rem"></div>
 
   <!-- Compact filters (no login / no WS buttons) -->
   <section class="card flow-toolbar">
     <div class="row flow-toolbar-row">
       <label>CPE
-        <input id="filterRouter" type="text" placeholder="router_id (optional)" autocomplete="off"/>
+        <input id="filterRouter" type="text" placeholder="cpe-lab (or empty = all)" autocomplete="off"/>
       </label>
       <label>Window
         <select id="filterHours" title="Lookback for list + overlay">
@@ -124,13 +127,18 @@
   </section>
 
   <div class="flow-layout">
-    <section class="card flow-list-panel">
+    <section class="card fl-panel" id="streamListPanel">
       <div class="flow-panel-head">
-        <h2>Streams</h2>
+        <div>
+          <h2>Streams</h2>
+          <p class="flow-axis-hint" style="margin:0.2rem 0 0">
+            Grouped by LAN client · rates update live
+          </p>
+        </div>
         <span class="hint" id="listMeta">j/k</span>
       </div>
-      <div class="flow-stream-list" id="streamList" role="listbox" aria-label="Flow streams">
-        <div class="flow-empty hint">Loading streams…</div>
+      <div class="fl-list" id="streamList" role="listbox" aria-label="Flow streams">
+        <div class="fl-empty hint">Loading streams…</div>
       </div>
     </section>
 
@@ -185,6 +193,6 @@
   <script src="/shell.js"></script>
   <script src="/live_feed.js"></script>
   <script src="/ws_mux.js"></script>
-  <script src="flows.js"></script>
+  <script src="flows.js?v=fl3"></script>
 </body>
 </html>
