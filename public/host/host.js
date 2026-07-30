@@ -204,27 +204,85 @@
   }
 
   /*
-   * Absolute cap after agent capability sanitization (HE 160 4SS ≈ 4.8 Gbps).
-   * Pre-fix samples may still be 10× inflated — treat > max as zero in UI.
+   * Absolute + residential inflate gates (mirror cpe_agent / edgehost ingest).
+   * QCA driver rates over the gate but under absolute max were left uncorrected
+   * by the old "only /10 when over max" logic → wild 600↔2164 Mbps charts.
    */
   var LINK_RATE_KBPS_MAX = 5000000; /* 5 Gbps */
 
-  function sanitizeLinkKbps(kbps) {
+  function phyModeCaps(phy) {
+    phy = Number(phy) || 0;
+    if (phy & 0x4) return { max: 2402000, gate: 1300000 }; /* HE */
+    if (phy & 0x2) return { max: 1733000, gate: 900000 }; /* VHT */
+    if (phy & 0x1) return { max: 600000, gate: 350000 }; /* HT */
+    /* Unknown phy_mode: use HE-class gate so we still catch multi-gig
+     * QCA ghosts without zeroing ordinary VHT/HT rates. */
+    return { max: 2402000, gate: 1300000 };
+  }
+
+  function sanitizeLinkKbps(kbps, phyMode) {
     kbps = Number(kbps) || 0;
     if (kbps <= 0 || kbps > LINK_RATE_KBPS_MAX) return 0;
+    var caps = phyModeCaps(phyMode);
+    if (kbps > caps.max || kbps > caps.gate) {
+      var d = Math.round(kbps / 10);
+      if (d > 0 && d <= caps.max) return d;
+      if (kbps > caps.max) return 0;
+    }
     return kbps;
   }
 
   function stationLinkTx(s) {
-    var kbps = sanitizeLinkKbps(s && s.tx_bitrate_kbps);
+    var kbps = sanitizeLinkKbps(s && s.tx_bitrate_kbps, s && s.phy_mode);
     if (kbps > 0) return { text: fmtLinkRate(kbps), est: false };
     return { text: "—", est: false };
   }
 
   function stationLinkRx(s) {
-    var kbps = sanitizeLinkKbps(s && s.rx_bitrate_kbps);
+    var kbps = sanitizeLinkKbps(s && s.rx_bitrate_kbps, s && s.phy_mode);
     if (kbps > 0) return { text: fmtLinkRate(kbps), est: false };
     return { text: "—", est: false };
+  }
+
+  /**
+   * Causal EMA on link-rate series so last-MPDU MCS chatter does not thrash
+   * the coverage chart. Half-life ~2.5 s at 1 Hz samples. Zeros are gaps
+   * (hold previous smoothed value) rather than cliffs to 0.
+   */
+  function smoothRatePts(pts, keys, halfLifeSec) {
+    halfLifeSec = halfLifeSec || 2.5;
+    if (!pts || !pts.length) return pts || [];
+    var alphaPerSec = 1 - Math.exp(-Math.LN2 / halfLifeSec);
+    var out = [];
+    var prev = {};
+    var prevT = NaN;
+    var i, k, p, t, dt, a, v, sm, o;
+    for (i = 0; i < keys.length; i++) prev[keys[i]] = null;
+    for (i = 0; i < pts.length; i++) {
+      p = pts[i];
+      if (!p) continue;
+      t = typeof p.ts === "number" ? p.ts : parseTs(p.ts);
+      o = Object.assign({}, p);
+      dt = !isNaN(t) && !isNaN(prevT) ? Math.max(0, (t - prevT) / 1000) : 1;
+      a = 1 - Math.pow(1 - alphaPerSec, Math.min(dt, 10));
+      if (a < 0.05) a = 0.05;
+      if (a > 1) a = 1;
+      for (k = 0; k < keys.length; k++) {
+        v = Number(p[keys[k]]);
+        if (!isFinite(v) || v <= 0) {
+          /* Hold last good smoothed value across idle gaps. */
+          o[keys[k]] = prev[keys[k]] != null ? prev[keys[k]] : 0;
+          continue;
+        }
+        if (prev[keys[k]] == null) sm = v;
+        else sm = prev[keys[k]] + a * (v - prev[keys[k]]);
+        prev[keys[k]] = sm;
+        o[keys[k]] = sm;
+      }
+      if (!isNaN(t)) prevT = t;
+      out.push(o);
+    }
+    return out;
   }
 
   /** Actual throughput from byte-counter deltas (most reliable bandwidth). */
@@ -1296,6 +1354,7 @@
    */
   function liveTipFromStation(s) {
     if (!s) return null;
+    var phy = Number(s.phy_mode) || 0;
     return {
       ts: Date.now(),
       ifname: s.ifname || "",
@@ -1303,12 +1362,12 @@
       rssi_avg: Number(s.rssi_avg) || 0,
       snr: Number(s.snr) || 0,
       freq_mhz: Number(s.freq_mhz) || 0,
-      tx_bitrate_kbps: Number(s.tx_bitrate_kbps) || 0,
-      rx_bitrate_kbps: Number(s.rx_bitrate_kbps) || 0,
+      tx_bitrate_kbps: sanitizeLinkKbps(s.tx_bitrate_kbps, phy),
+      rx_bitrate_kbps: sanitizeLinkKbps(s.rx_bitrate_kbps, phy),
       tx_throughput_bps: Number(s.tx_throughput_bps) || 0,
       rx_throughput_bps: Number(s.rx_throughput_bps) || 0,
       chain_rssi: s.chain_rssi != null ? s.chain_rssi : "",
-      phy_mode: Number(s.phy_mode) || 0,
+      phy_mode: phy,
       tx_retries: Number(s.tx_retries) || 0,
       tx_failed: Number(s.tx_failed) || 0,
       _live: 1
@@ -1424,14 +1483,19 @@
     var thrCanvas = $("clientThrChart_" + safe);
     if (!rssiCanvas && !rateCanvas && !thrCanvas) return;
     var pts = clientSeriesForChart(mac);
-    /* Convert link rates kbps → Mbps for readable Y axis. */
-    var ratePts = pts.map(function (p) {
-      return {
-        ts: p.ts,
-        tx_mbps: (Number(p.tx_bitrate_kbps) || 0) / 1000,
-        rx_mbps: (Number(p.rx_bitrate_kbps) || 0) / 1000
-      };
-    });
+    /* Sanitize + smooth PHY rates: fix residual QCA 10×, tame last-MPDU jumps. */
+    var ratePts = smoothRatePts(
+      pts.map(function (p) {
+        var phy = Number(p.phy_mode) || 0;
+        return {
+          ts: p.ts,
+          tx_mbps: sanitizeLinkKbps(p.tx_bitrate_kbps, phy) / 1000,
+          rx_mbps: sanitizeLinkKbps(p.rx_bitrate_kbps, phy) / 1000
+        };
+      }),
+      ["tx_mbps", "rx_mbps"],
+      2.5
+    );
     var thrPts = pts.map(function (p) {
       return {
         ts: p.ts,
