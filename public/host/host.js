@@ -2674,6 +2674,13 @@
     if (gl && window.EdgeContext && EdgeContext.hrefWithContext) {
       gl.href = EdgeContext.hrefWithContext("/graphs/");
     }
+    var sl = $("openShellLink");
+    if (sl) {
+      sl.href =
+        "/terminal/?router_id=" +
+        encodeURIComponent(rid || "cpe-lab") +
+        (rid ? "&auto=1" : "");
+    }
   }
 
   function bootLive() {

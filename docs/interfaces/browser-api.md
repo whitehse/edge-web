@@ -69,6 +69,24 @@ host/wifi follow the same envelope).
 | E7 admin | `/api/v1/e7/*` | Call Home control plane |
 | Telemetry status | `/api/v1/telemetry/status` | Operator/debug (not CPE path) |
 | CPE control WS | `GET /api/v1/cpe/control` | Separate hub (summon/AI); not series data |
+| CPE shell WS | `GET /api/v1/cpe/shell?router_id=` | Browser xterm.js ↔ callhome PTY (binary frames) |
+| CPE callhome | `GET /api/v1/cpe/callhome` | Online routers + staff_port + reverse tunnels |
+
+### CPE shell WebSocket
+
+```text
+ws(s)://<host>/api/v1/cpe/shell?router_id=cpe-lab
+```
+
+| Direction | Frame | Payload |
+|-----------|-------|---------|
+| Browser → host | binary | PTY stdin bytes |
+| Host → browser | binary | PTY stdout bytes |
+| Browser → host | text | `{"op":"resize","cols":N,"rows":M}` |
+| Host → browser | text | `{"op":"status","state":"ready\|error","msg":"…"}` |
+
+SPA: `public/terminal/` (xterm.js from CDN). Requires online CPE call-home
+session; exclusive with staff reverse-shell SSH face.
 
 Exact query parameters and JSON fields evolve with edgehost handlers; when the
 SPA depends on a field, note it here or in a page guide under `docs/guides/`.

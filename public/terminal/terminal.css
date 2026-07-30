@@ -1,0 +1,37 @@
+.term-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.term-help {
+  margin: 0.25rem 0 0;
+}
+
+.term-card {
+  padding: 0.5rem;
+  background: #0c0e12;
+  border: 1px solid var(--border, #2a2f3a);
+  min-height: 28rem;
+}
+
+.term-host {
+  width: 100%;
+  height: min(70vh, 36rem);
+  padding: 0.35rem 0.5rem;
+  box-sizing: border-box;
+}
+
+.term-host .xterm {
+  height: 100%;
+}
+
+.term-host .xterm-viewport {
+  overflow-y: auto !important;
+}
+
+html[data-theme="light"] .term-card {
+  background: #1a1d24;
+}

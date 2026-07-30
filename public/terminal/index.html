@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CPE shell · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css"/>
+  <link rel="stylesheet" href="terminal.css"/>
+</head>
+<body class="app-shell" data-nav="terminal" data-title="CPE shell"
+      data-subtitle="Interactive shell on a call-home router (xterm.js)"
+      data-wide="1">
+  <header class="hidden">
+    <h1>CPE shell</h1>
+  </header>
+
+  <section class="card term-toolbar">
+    <div class="row term-toolbar-row">
+      <label>Router
+        <input id="filterRouter" type="text" placeholder="cpe-lab" style="min-width:10rem" autocomplete="off"/>
+      </label>
+      <button type="button" id="btnConnect" class="btn primary">Connect</button>
+      <button type="button" id="btnDisconnect" class="btn secondary" disabled>Disconnect</button>
+      <span class="hint" id="statusLine">Idle — pick a router and connect</span>
+    </div>
+    <p class="hint term-help">
+      Opens a PTY on the CPE through the SSH call-home session (no public CPE
+      <code>sshd</code>). Requires the agent online —
+      <a href="/api/v1/cpe/callhome" target="_blank" rel="noopener">list sessions</a>.
+      Same exclusive shell as staff SSH on the reverse port.
+    </p>
+  </section>
+
+  <section class="card term-card">
+    <div id="termHost" class="term-host" aria-label="Terminal"></div>
+  </section>
+
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+  <script src="/app.js"></script>
+  <script src="/context.js"></script>
+  <script src="/shell.js"></script>
+  <script src="terminal.js"></script>
+</body>
+</html>

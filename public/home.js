@@ -53,6 +53,13 @@
       rose: true
     },
     {
+      href: "/terminal/",
+      title: "CPE shell",
+      desc: "Browser terminal on a call-home router (xterm.js).",
+      ico: "⌘",
+      rose: false
+    },
+    {
       href: "/explain/",
       title: "Fiber explain",
       desc: "Interactive path stories for training and support.",
