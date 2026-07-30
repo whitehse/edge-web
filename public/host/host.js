@@ -43,6 +43,7 @@
     lastHostPushMs: 0,
     lastWifiPushMs: 0,
     lastStationsMs: 0,
+    lastClientSeriesMs: 0, /* last successful coverage-history REST fill */
     stationsPollTimer: 0,
     clientSeriesPollTimer: 0,
     feedAgeMs: 0,
@@ -117,6 +118,20 @@
     if (!next || !next.length) return prev || [];
     if (!prev || !prev.length) return next.slice();
     return next.length >= prev.length ? next.slice() : prev;
+  }
+
+  /** Dense 1 Hz coverage history needs a higher point budget than host charts. */
+  function mergeClientSeriesPts(prev, next) {
+    var mins = state.minutes || selectedMinutes() || 10;
+    var lookback = Math.max(60000, mins * 60000 + 30000);
+    var limit = mins <= 15 ? mins * 60 + 90 : 1200;
+    if (typeof LF.mergeByTimestamp === "function") {
+      return LF.mergeByTimestamp(prev, next, lookback, {
+        parseTs: parseTs,
+        limit: limit
+      });
+    }
+    return mergeSeriesPts(prev, next);
   }
 
   function fmtLocalTs(ts, style) {
@@ -565,11 +580,11 @@
      */
     var dataEnd = ext ? ext.tmax : nowMs;
     var dataAge = nowMs - dataEnd;
-    /* Freshness = time since last successful WS series body (host or wifi). */
-    var lastPush = Math.max(
-      state.lastHostPushMs || 0,
-      state.lastWifiPushMs || 0
-    );
+    /* Freshness = last successful push for this chart (or host/wifi default). */
+    var lastPush =
+      opts.lastPushMs != null && isFinite(opts.lastPushMs)
+        ? opts.lastPushMs
+        : Math.max(state.lastHostPushMs || 0, state.lastWifiPushMs || 0);
     var feedAge = lastPush > 0 ? nowMs - lastPush : 0;
     /* No banner until we've had at least one push (avoid flash on boot). */
     var stale = lastPush > 0 && feedAge > PUSH_STALE_MS;
@@ -1177,6 +1192,10 @@
           restPollLanClients();
         }
         renderWifiClients();
+        /* Keep coverage-walk tips live with the association snapshot. */
+        if (anyClientExpanded()) {
+          scheduleCharts();
+        }
       })
       .catch(function () {
         /* Network glitch: do not age-out associations (no miss increment). */
@@ -1264,6 +1283,68 @@
     el.textContent = "";
   }
 
+  function stationForMac(mac) {
+    mac = macKey(mac);
+    var ent = state.wifiStationMap && state.wifiStationMap[mac];
+    return ent && ent.s ? ent.s : null;
+  }
+
+  /**
+   * Live tip from the current association snapshot (2 s station poll / WS).
+   * CH series history can lag ~several seconds; the tip keeps coverage charts
+   * tracking the same RSSI/rates as the Connected clients table in real time.
+   */
+  function liveTipFromStation(s) {
+    if (!s) return null;
+    return {
+      ts: Date.now(),
+      ifname: s.ifname || "",
+      rssi: Number(s.rssi) || 0,
+      rssi_avg: Number(s.rssi_avg) || 0,
+      snr: Number(s.snr) || 0,
+      freq_mhz: Number(s.freq_mhz) || 0,
+      tx_bitrate_kbps: Number(s.tx_bitrate_kbps) || 0,
+      rx_bitrate_kbps: Number(s.rx_bitrate_kbps) || 0,
+      tx_throughput_bps: Number(s.tx_throughput_bps) || 0,
+      rx_throughput_bps: Number(s.rx_throughput_bps) || 0,
+      chain_rssi: s.chain_rssi != null ? s.chain_rssi : "",
+      phy_mode: Number(s.phy_mode) || 0,
+      tx_retries: Number(s.tx_retries) || 0,
+      tx_failed: Number(s.tx_failed) || 0,
+      _live: 1
+    };
+  }
+
+  /** History from ClickHouse + live tip at wall-clock now (for plotSeries). */
+  function clientSeriesForChart(mac) {
+    mac = macKey(mac);
+    var hist =
+      (state.clientSeries[mac] && state.clientSeries[mac].points) || [];
+    var tip = liveTipFromStation(stationForMac(mac));
+    if (!tip) return hist;
+    var tipT = tip.ts;
+    var out = [];
+    var i;
+    for (i = 0; i < hist.length; i++) {
+      var p = hist[i];
+      if (!p || p._live) continue;
+      var t = parseTs(p.ts);
+      /* Leave the right edge to the live tip (morph target). */
+      if (!isNaN(t) && tipT - t < 2000 && t <= tipT) continue;
+      out.push(p);
+    }
+    out.push(tip);
+    return out;
+  }
+
+  function clientChartLastPushMs() {
+    return Math.max(
+      state.lastStationsMs || 0,
+      state.lastClientSeriesMs || 0,
+      state.lastWifiPushMs || 0
+    );
+  }
+
   function requestClientSeries(mac) {
     mac = macKey(mac);
     if (!mac) return;
@@ -1286,7 +1367,14 @@
       })
       .then(function (d) {
         if (!d || d.ok === false || !Array.isArray(d.points)) return;
-        state.clientSeries[mac] = { points: d.points };
+        var prev =
+          (state.clientSeries[mac] && state.clientSeries[mac].points) || [];
+        /* Accumulate history; never wipe a longer buffer with a short reply. */
+        state.clientSeries[mac] = {
+          points: mergeClientSeriesPts(prev, d.points)
+        };
+        state.lastClientSeriesMs = Date.now();
+        scheduleCharts();
         renderClientDetailCharts(mac);
       })
       .catch(function () {
@@ -1303,6 +1391,7 @@
     } else {
       state.expandedClients[mac] = true;
       requestClientSeries(mac);
+      scheduleCharts();
     }
     renderWifiClients();
   }
@@ -1317,14 +1406,24 @@
     }
   }
 
+  function anyClientExpanded() {
+    var macs = Object.keys(state.expandedClients || {});
+    var i;
+    for (i = 0; i < macs.length; i++) {
+      if (state.expandedClients[macs[i]]) return true;
+    }
+    return false;
+  }
+
   function renderClientDetailCharts(mac) {
     mac = macKey(mac);
+    if (!mac || !state.expandedClients[mac]) return;
     var safe = mac.replace(/:/g, "");
     var rssiCanvas = $("clientRssiChart_" + safe);
     var rateCanvas = $("clientRateChart_" + safe);
     var thrCanvas = $("clientThrChart_" + safe);
-    var pts =
-      (state.clientSeries[mac] && state.clientSeries[mac].points) || [];
+    if (!rssiCanvas && !rateCanvas && !thrCanvas) return;
+    var pts = clientSeriesForChart(mac);
     /* Convert link rates kbps → Mbps for readable Y axis. */
     var ratePts = pts.map(function (p) {
       return {
@@ -1343,7 +1442,9 @@
     var win = {
       windowMinutes: state.minutes || selectedMinutes(),
       live: true,
-      height: 150
+      height: 150,
+      /* Station poll freshness drives live scroll (not host WS alone). */
+      lastPushMs: clientChartLastPushMs()
     };
     plotSeries(
       rssiCanvas,
@@ -1420,6 +1521,16 @@
     );
   }
 
+  function renderExpandedClientCharts() {
+    var macs = Object.keys(state.expandedClients || {});
+    var i;
+    for (i = 0; i < macs.length; i++) {
+      if (state.expandedClients[macs[i]]) {
+        renderClientDetailCharts(macs[i]);
+      }
+    }
+  }
+
   function renderWifiClients() {
     var tb = $("clientsTable") && $("clientsTable").querySelector("tbody");
     if (!tb) return;
@@ -1440,7 +1551,7 @@
           ? rows.length +
             " Wi‑Fi client" +
             (rows.length === 1 ? "" : "s") +
-            " · 1 Hz samples · click for coverage history"
+            " · live · click for coverage history"
           : state.lanClients && state.lanClients.length
             ? "0 Wi‑Fi · " +
               state.lanClients.length +
@@ -2167,6 +2278,10 @@
         renderProcDetailCharts(pid);
       }
     }
+    /* Coverage-walk charts: live tip from station snapshot + CH history. */
+    if (anyClientExpanded()) {
+      renderExpandedClientCharts();
+    }
   }
 
   function renderCharts() {
@@ -2555,6 +2670,9 @@
       mergeWifiStations(body.stations, { trackMiss: false });
       state.lastStationsMs = Date.now();
       renderWifiClients();
+      if (anyClientExpanded()) {
+        scheduleCharts();
+      }
     } else if (msg.op === "wifi_events") {
       if (body.ok === false || !Array.isArray(body.events)) return;
       state.wifiEv = body.events;
@@ -2644,11 +2762,13 @@
       clearInterval(state.stationsPollTimer);
     }
     state.stationsPollTimer = setInterval(restPollStations, 2000);
-    /* Refresh open coverage charts (~1 s samples; poll every 2 s). */
+    /* CH history fill for open coverage charts (live tip comes from stations). */
     if (state.clientSeriesPollTimer) {
       clearInterval(state.clientSeriesPollTimer);
     }
-    state.clientSeriesPollTimer = setInterval(pollExpandedClientSeries, 2000);
+    state.clientSeriesPollTimer = setInterval(pollExpandedClientSeries, 3000);
+    /* Ensure anim loop is running so expanded coverage charts scroll. */
+    scheduleCharts();
   }
 
   function ensureContextBanner() {
