@@ -83,11 +83,18 @@
       var n = Number(s);
       return n > 0 && n < 1e12 ? n * 1000 : n;
     }
-    var t = Date.parse(s);
-    if (!isNaN(t)) return t;
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
-      t = Date.parse(s.replace(" ", "T") + "Z");
+    /*
+     * ClickHouse DateTime/DateTime64 text is UTC without a zone:
+     * "YYYY-MM-DD HH:mm:ss[.ms]". Prefer …T…Z before bare Date.parse — engines
+     * often treat the space form as local, which shifts coverage-walk points
+     * hours off the live window.
+     */
+    if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(s) &&
+        !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+      var tCh = Date.parse(s.replace(" ", "T") + "Z");
+      if (!isNaN(tCh)) return tCh;
     }
+    var t = Date.parse(s);
     return isNaN(t) ? NaN : t;
   }
 
