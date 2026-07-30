@@ -138,6 +138,7 @@
           <p class="host-axis-hint">
             Left: station count. Right: channel util % (0–100 of airtime). Noise in dBm (higher = noisier).
             Util &gt;70% or noise &gt;−80 dBm often means interference.
+            Survey requires nl80211 on radio phys (wifi0/wifi1); zeros mean driver has no survey data.
           </p>
         </div>
         <span class="hint" id="wifiMeta">—</span>
@@ -148,6 +149,26 @@
         <span class="leg leg-util">channel util % of airtime</span>
         <span class="leg leg-noise">noise floor (dBm)</span>
         <span class="leg leg-warn">interference threshold (70% util)</span>
+      </div>
+    </section>
+    <section class="card host-chart-card host-chart-wide">
+      <div class="host-panel-head">
+        <div>
+          <h2>Radio health (QDF HTT)</h2>
+          <p class="host-axis-hint">
+            Firmware TX retry % and underruns from QDF dp_wifistats (1&nbsp;Hz).
+            xretry &gt;2–3% sustained often means RF collisions, weak clients, or interference.
+            PPDU rate shows airtime activity.
+          </p>
+        </div>
+        <span class="hint" id="wifiFwMeta">—</span>
+      </div>
+      <canvas id="wifiFwChart" width="900" height="220" data-h="220" aria-label="Radio health chart"></canvas>
+      <div class="host-legend">
+        <span class="leg leg-xretry">TX xretry %</span>
+        <span class="leg leg-underrun">underrun Δ / s</span>
+        <span class="leg leg-ppdu">PPDU ok / s (scaled)</span>
+        <span class="leg leg-warn">xretry 3% caution</span>
       </div>
     </section>
   </div>
@@ -162,6 +183,7 @@
           actual throughput) — ideal while walking rooms with a test phone.
           Link TX/RX are PHY rates (capability-sanitized for QCA 10× inflate).
           Thrput is real byte-counter bandwidth. Chain RSSI is per RF antenna.
+          <strong>Status</strong> flags idle (inactive), stuck PTK, MIC fails, partial auth.
         </p>
       </div>
       <span class="hint" id="clientsMeta">—</span>
@@ -180,11 +202,12 @@
             <th title="PHY link rate (TX to client)">Link TX</th>
             <th title="PHY link rate (RX from client)">Link RX</th>
             <th title="Actual throughput from byte counters">Thrput</th>
+            <th title="Association / security fault badges">Status</th>
             <th>Seen</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="10" class="hint">Waiting for station samples…</td></tr>
+          <tr><td colspan="11" class="hint">Waiting for station samples…</td></tr>
         </tbody>
       </table>
     </div>

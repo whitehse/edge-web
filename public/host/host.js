@@ -16,6 +16,7 @@
   var state = {
     hostPts: [],
     wifiPts: [],
+    wifiFwPts: [], /* QDF radio health (xretry/underrun/ppdu) */
     wifiStations: [],
     /* MAC → { s, miss } — keep until hostapd leave (missed polls) or leave event. */
     wifiStationMap: {},
@@ -44,8 +45,10 @@
     lastWifiPushMs: 0,
     lastStationsMs: 0,
     lastClientSeriesMs: 0, /* last successful coverage-history REST fill */
+    lastWifiFwMs: 0,
     stationsPollTimer: 0,
     clientSeriesPollTimer: 0,
+    wifiFwPollTimer: 0,
     feedAgeMs: 0,
     lanClients: [], /* fallback from flows when wifi stations empty */
     lastLanMs: 0
@@ -313,6 +316,80 @@
         fmtThroughput(rx) +
         " client→AP"
     };
+  }
+
+  /**
+   * Association / security fault badges from hostapd fields
+   * (inactive_msec, ptk_state, mic_failures, assoc_flags).
+   */
+  function stationStatusBadges(s) {
+    var badges = [];
+    var inactive = Number(s && s.inactive_msec) || 0;
+    var ptk = Number(s && s.ptk_state) || 0;
+    var mic = Number(s && s.mic_failures) || 0;
+    var flags = Number(s && s.assoc_flags) || 0;
+    var AUTH = 0x1;
+    var ASSOC = 0x2;
+    var AUTHORIZED = 0x4;
+
+    if (inactive >= 60000) {
+      badges.push({
+        cls: "sta-badge sta-idle",
+        text: "idle " + Math.round(inactive / 1000) + "s",
+        title: "No STA activity for " + inactive + " ms (hostapd inactive_msec)"
+      });
+    } else if (inactive >= 15000) {
+      badges.push({
+        cls: "sta-badge sta-quiet",
+        text: "quiet",
+        title: "inactive_msec=" + inactive
+      });
+    }
+    if (flags && !(flags & ASSOC) && flags & AUTH) {
+      badges.push({
+        cls: "sta-badge sta-partial",
+        text: "auth-only",
+        title: "AUTH without ASSOC (partial association)"
+      });
+    } else if (flags && !(flags & AUTHORIZED) && flags & ASSOC) {
+      badges.push({
+        cls: "sta-badge sta-partial",
+        text: "no-authz",
+        title: "ASSOC without AUTHORIZED"
+      });
+    }
+    /* hostapdWPAPTKState: 11 = installed; 0 = incomplete (common stuck state). */
+    if (flags & ASSOC && ptk === 0) {
+      badges.push({
+        cls: "sta-badge sta-ptk",
+        text: "ptk?",
+        title: "WPAPTKState=0 while associated (incomplete PTK)"
+      });
+    }
+    if (mic > 0) {
+      badges.push({
+        cls: "sta-badge sta-mic",
+        text: "MIC " + mic,
+        title: "TKIP MIC failures (local+remote) = " + mic
+      });
+    }
+    if (!badges.length) {
+      return { html: '<span class="hint">—</span>', cls: "" };
+    }
+    var html = badges
+      .map(function (b) {
+        return (
+          '<span class="' +
+          b.cls +
+          '" title="' +
+          esc(b.title) +
+          '">' +
+          esc(b.text) +
+          "</span>"
+        );
+      })
+      .join(" ");
+    return { html: html, cls: " has-status" };
   }
 
   function macKey(mac) {
@@ -1169,6 +1246,36 @@
         /* ignore */
       });
     restPollStations();
+    restPollWifiFw();
+  }
+
+  /** QDF HTT radio health (xretry / underrun / PPDU) for Radio health chart. */
+  function restPollWifiFw() {
+    var opts = seriesOpts();
+    var mins = opts.minutes || selectedMinutes() || 10;
+    var lim = mins <= 15 ? mins * 60 + 30 : 600;
+    var q =
+      "/api/v1/cpe/wifi/fw?minutes=" +
+      encodeURIComponent(mins) +
+      "&limit=" +
+      encodeURIComponent(lim);
+    if (opts.router_id) {
+      q += "&router_id=" + encodeURIComponent(opts.router_id);
+    }
+    fetch(q, { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d || d.ok === false || !Array.isArray(d.points)) return;
+        state.wifiFwPts = d.points;
+        state.lastWifiFwMs = Date.now();
+        state.metaDirty = true;
+        scheduleCharts();
+      })
+      .catch(function () {
+        /* ignore */
+      });
   }
 
   /**
@@ -1649,12 +1756,13 @@
               " stream" +
               (c.streams === 1 ? "" : "s") +
               "</td>" +
+              "<td>—</td>" +
               "<td>" +
               esc(seen.text) +
               "</td></tr>";
           }
           tb.innerHTML =
-            '<tr class="hint"><td colspan="10">' +
+            '<tr class="hint"><td colspan="11">' +
             "No <code>subtype=station</code> rows from the radio dump. " +
             "Listing LAN IPs currently carrying traffic (from <code>cpe_flows</code>). " +
             "RSSI/band require hostapd all_sta + nl80211/iw enrich on the CPE." +
@@ -1677,7 +1785,7 @@
             "no associations.";
         }
         tb.innerHTML =
-          '<tr><td colspan="10" class="hint">' + esc(emptyHint) + "</td></tr>";
+          '<tr><td colspan="11" class="hint">' + esc(emptyHint) + "</td></tr>";
         return;
       }
       var html = "";
@@ -1694,12 +1802,14 @@
         var rx = stationLinkRx(s);
         var thr = stationThroughput(s);
         var chains = fmtChainRssi(s);
+        var stBadges = stationStatusBadges(s);
         var seen = clientSeenAge(s);
         var cls = "client-row";
         if (exp) cls += " expanded";
         if (rssi <= -75) cls += " client-weak";
         else if (rssi >= -60) cls += " client-ok";
         if (seen.stale) cls += " client-stale";
+        if (stBadges.cls) cls += stBadges.cls;
         html +=
           '<tr class="' +
           cls +
@@ -1740,6 +1850,9 @@
           '">' +
           esc(thr.text) +
           "</td>" +
+          '<td class="status-cell">' +
+          stBadges.html +
+          "</td>" +
           '<td title="' +
           esc(fmtLocalTs(s.last_ts || s.ts, "datetime")) +
           '">' +
@@ -1750,7 +1863,7 @@
           html +=
             '<tr class="client-detail" data-mac="' +
             esc(mk) +
-            '"><td colspan="10">' +
+            '"><td colspan="11">' +
             '<div class="client-detail-head">' +
             "<div><strong>Coverage walk</strong> · <code>" +
             esc(mac) +
@@ -2145,8 +2258,48 @@
           " stations · util " +
           (Number(wlast.chan_util_pct) || 0).toFixed(1) +
           "% · noise " +
-          (wlast.noise_dbm != null ? wlast.noise_dbm + " dBm" : "—")
+          (wlast.noise_dbm != null ? wlast.noise_dbm + " dBm" : "—") +
+          (Number(wlast.has_survey) ? "" : " · no survey")
         : "—";
+    }
+    if ($("wifiFwMeta")) {
+      var fw = state.wifiFwPts || [];
+      var lastXr = 0;
+      var lastUnd = 0;
+      var radios = {};
+      var j;
+      for (j = 0; j < fw.length; j++) {
+        var p = fw[j];
+        if (!p) continue;
+        if (p.radio) radios[p.radio] = 1;
+        var xr = Number(p.xretry_pct) || 0;
+        if (xr > lastXr) lastXr = xr;
+        lastUnd += Number(p.underrun_delta) || 0;
+      }
+      /* Prefer last bucket only for underrun tip */
+      if (fw.length) {
+        var lastTs = fw[fw.length - 1].ts;
+        lastUnd = 0;
+        lastXr = 0;
+        for (j = 0; j < fw.length; j++) {
+          if (String(fw[j].ts) !== String(lastTs)) continue;
+          lastUnd += Number(fw[j].underrun_delta) || 0;
+          lastXr = Math.max(lastXr, Number(fw[j].xretry_pct) || 0);
+        }
+      }
+      var rnames = Object.keys(radios);
+      $("wifiFwMeta").textContent = fw.length
+        ? "xretry " +
+          lastXr.toFixed(1) +
+          "% · underrun Δ " +
+          lastUnd +
+          (rnames.length ? " · " + rnames.join("+") : "") +
+          " · " +
+          fw.length +
+          " pts"
+        : "waiting for QDF fw samples…";
+      $("wifiFwMeta").style.color =
+        lastXr >= 3 ? "var(--bad, #e87a82)" : lastXr >= 1.5 ? "var(--warn, #f0a040)" : "";
     }
     renderCpuLegend(last);
     renderHealth();
@@ -2330,6 +2483,92 @@
           fmtY: function (v) {
             return v.toFixed(0);
           }
+        },
+        win
+      )
+    );
+
+    /* Radio health: collapse multi-radio FW points to one series per ts. */
+    var fwAgg = {};
+    var fwList = [];
+    var fi;
+    for (fi = 0; fi < (state.wifiFwPts || []).length; fi++) {
+      var fp = state.wifiFwPts[fi];
+      if (!fp || !fp.ts) continue;
+      var fkey = String(fp.ts);
+      var cur = fwAgg[fkey];
+      var xr = Number(fp.xretry_pct) || 0;
+      var und = Number(fp.underrun_delta) || 0;
+      var pp = Number(fp.ppdu_ok_delta) || 0;
+      if (!cur) {
+        fwAgg[fkey] = {
+          ts: fp.ts,
+          xretry_pct: xr,
+          underrun_delta: und,
+          ppdu_ok_delta: pp,
+          /* Scale PPDU to fit % axis (~100 PPDU/s → 100). */
+          ppdu_scaled: Math.min(100, pp / 10)
+        };
+      } else {
+        if (xr > cur.xretry_pct) cur.xretry_pct = xr;
+        cur.underrun_delta += und;
+        cur.ppdu_ok_delta += pp;
+        cur.ppdu_scaled = Math.min(100, cur.ppdu_ok_delta / 10);
+      }
+    }
+    for (fi in fwAgg) {
+      if (Object.prototype.hasOwnProperty.call(fwAgg, fi)) {
+        fwList.push(fwAgg[fi]);
+      }
+    }
+    fwList.sort(function (a, b) {
+      return parseTs(a.ts) - parseTs(b.ts);
+    });
+    plotSeries(
+      $("wifiFwChart"),
+      fwList,
+      [
+        {
+          key: "xretry_pct",
+          color: "#e87a82",
+          width: 2.4,
+          fill: "rgba(232,122,130,0.10)",
+          showTip: true
+        },
+        {
+          key: "underrun_delta",
+          color: "#f0a040",
+          width: 1.6,
+          showTip: true
+        },
+        {
+          key: "ppdu_scaled",
+          color: "#6b8cff",
+          width: 1.4,
+          showTip: false
+        }
+      ],
+      Object.assign(
+        {
+          chartId: "wifiFw",
+          height: 220,
+          ymin: 0,
+          yLabel: "xretry % · underrun Δ",
+          refLines: [
+            {
+              value: 3,
+              color: "#e87a82",
+              dash: [5, 4],
+              label: "3% xretry caution"
+            }
+          ],
+          fmtY: function (v) {
+            return v.toFixed(v < 10 ? 1 : 0);
+          },
+          lastPushMs: Math.max(
+            state.lastWifiFwMs || 0,
+            state.lastWifiPushMs || 0
+          )
         },
         win
       )
@@ -2831,6 +3070,12 @@
       clearInterval(state.clientSeriesPollTimer);
     }
     state.clientSeriesPollTimer = setInterval(pollExpandedClientSeries, 3000);
+    /* QDF radio health (xretry) — independent of host WS frame budget. */
+    if (state.wifiFwPollTimer) {
+      clearInterval(state.wifiFwPollTimer);
+    }
+    restPollWifiFw();
+    state.wifiFwPollTimer = setInterval(restPollWifiFw, 4000);
     /* Ensure anim loop is running so expanded coverage charts scroll. */
     scheduleCharts();
   }
