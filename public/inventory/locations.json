@@ -32,7 +32,9 @@
         "last_seen": "moments ago"
       },
       "tap_id": "tap-north-ridge",
-      "account_id": "A-10428"
+      "account_id": "A-10428",
+      "calix_subscriber_id": "CX2-SUB-A10428",
+      "calix_device_id": "CX2-RG-cpe-lab"
     },
     {
       "id": "loc-elm-408",
@@ -63,7 +65,9 @@
         "last_seen": "2 min ago"
       },
       "tap_id": "tap-north-ridge",
-      "account_id": "A-10991"
+      "account_id": "A-10991",
+      "calix_subscriber_id": "CX2-SUB-A10991",
+      "calix_device_id": "CX2-RG-cpe-elm"
     },
     {
       "id": "loc-pine-9",
@@ -94,7 +98,9 @@
         "last_seen": "6 h ago"
       },
       "tap_id": "tap-pine-hollow",
-      "account_id": "A-11204"
+      "account_id": "A-11204",
+      "calix_subscriber_id": "CX2-SUB-A11204",
+      "calix_device_id": "CX2-RG-cpe-pine"
     },
     {
       "id": "loc-meadow-77",
@@ -125,7 +131,9 @@
         "last_seen": "moments ago"
       },
       "tap_id": "tap-3",
-      "account_id": "A-10003"
+      "account_id": "A-10003",
+      "calix_subscriber_id": "CX2-SUB-A10003",
+      "calix_device_id": "CX2-RG-cpe-meadow"
     }
   ]
 }
