@@ -675,6 +675,62 @@
     }
   }
 
+  function renderSshPanel(j) {
+    var kv = $("sshKv");
+    if (!kv) return;
+    var ssh = (j && j.ssh) || {};
+    var pin = ssh.host_pin_fp || "";
+    var method = ssh.auth_method || "";
+    var kid = ssh.client_key_id != null ? String(ssh.client_key_id) : "—";
+    var cfp = ssh.client_key_fp || "—";
+    kv.innerHTML =
+      "<div><div class=\"k\">auth method</div><div class=\"v\">" +
+      esc(method || "—") +
+      "</div></div>" +
+      "<div><div class=\"k\">client key id</div><div class=\"v\"><code>" +
+      esc(kid) +
+      "</code></div></div>" +
+      "<div><div class=\"k\">client key fp</div><div class=\"v mono\">" +
+      esc(cfp) +
+      "</div></div>" +
+      "<div><div class=\"k\">host pin fp</div><div class=\"v mono\">" +
+      esc(pin || "(none — TOFU pending on first connect)") +
+      "</div></div>";
+  }
+
+  async function loadPendingPins() {
+    var r = await fetchText("/api/v1/ssh-keys/pending-pins");
+    var el = $("pendingPinsOut");
+    if (!el) return;
+    if (!r.ok) {
+      el.textContent = "HTTP " + r.status + "\n" + r.body;
+      return;
+    }
+    try {
+      var j = JSON.parse(r.body);
+      var pins = j.pending_pins || [];
+      if (!pins.length) {
+        el.textContent = "No pending host pins.";
+        return;
+      }
+      el.textContent = pins
+        .map(function (p) {
+          return (
+            "#" +
+            p.id +
+            " " +
+            (p.name || "") +
+            " " +
+            (p.fingerprint_sha256 || "") +
+            " — confirm on /ssh-keys/"
+          );
+        })
+        .join("\n");
+    } catch (e) {
+      el.textContent = r.body;
+    }
+  }
+
   async function loadDetail() {
     var mac = selectedMac();
     if (!mac) {
@@ -684,6 +740,14 @@
     setSelectedMac(mac);
     var r = await fetchText("/api/v1/e7/shelves/" + macPath(mac));
     setText("detailOut", "GET shelf HTTP " + r.status + "\n" + r.body);
+    if (r.ok) {
+      try {
+        renderSshPanel(JSON.parse(r.body));
+      } catch (e) {
+        renderSshPanel(null);
+      }
+    }
+    await loadPendingPins();
   }
 
   async function loadOnts(append) {
@@ -1062,6 +1126,8 @@
   if ($("btnShelfPut")) $("btnShelfPut").addEventListener("click", putShelf);
   if ($("btnShelfLoad")) $("btnShelfLoad").addEventListener("click", loadFormFromSelected);
   if ($("btnDetail")) $("btnDetail").addEventListener("click", loadDetail);
+  if ($("btnPendingPins"))
+    $("btnPendingPins").addEventListener("click", loadPendingPins);
   if ($("btnOnts")) $("btnOnts").addEventListener("click", function () { loadOnts(false); });
   if ($("btnOntsMore")) $("btnOntsMore").addEventListener("click", loadOntsMore);
   if ($("btnCmdSubmit")) $("btnCmdSubmit").addEventListener("click", submitCommand);

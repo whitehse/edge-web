@@ -22,6 +22,31 @@
       </div>
     </div>
 
+    <section class="card" style="margin-bottom:1rem">
+      <h2 style="margin-top:0;font-size:1.05rem">CPE Call Home sessions</h2>
+      <p class="hint">
+        Live SSH sessions on :4335 — auth method and key fingerprint (PR-7).
+        Manage authorized keys on <a href="/ssh-keys/">SSH Keys</a>.
+      </p>
+      <div class="row">
+        <button type="button" id="btnChSessions">Refresh sessions</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data" id="chSessionTable">
+          <thead>
+            <tr>
+              <th>router_id</th><th>peer</th><th>auth</th>
+              <th>key_id</th><th>key_fp</th><th>staff_port</th>
+            </tr>
+          </thead>
+          <tbody id="chSessionBody">
+            <tr><td colspan="6" class="muted-cell">…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <pre id="chSessionOut" class="compact"></pre>
+    </section>
+
     <div class="device-grid" id="deviceGrid"></div>
   </div>
 

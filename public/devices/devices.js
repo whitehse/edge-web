@@ -234,13 +234,74 @@
     renderList(filterList(q));
   }
 
+  async function loadChSessions() {
+    var tbody = $("chSessionBody");
+    var out = $("chSessionOut");
+    if (!tbody) return;
+    try {
+      var r = await fetch("/api/v1/cpe/callhome", {
+        credentials: "same-origin"
+      });
+      var text = await r.text();
+      if (out) out.textContent = "HTTP " + r.status;
+      if (!r.ok) {
+        tbody.innerHTML =
+          "<tr><td colspan=\"6\" class=\"muted-cell\">HTTP " +
+          r.status +
+          " (plugin off?)</td></tr>";
+        return;
+      }
+      var j = JSON.parse(text);
+      var sessions = j.sessions || [];
+      if (!sessions.length) {
+        tbody.innerHTML =
+          "<tr><td colspan=\"6\" class=\"muted-cell\">No online CPE sessions</td></tr>";
+        return;
+      }
+      tbody.innerHTML = sessions
+        .map(function (s) {
+          return (
+            "<tr>" +
+            "<td><code>" +
+            escapeHtml(s.router_id) +
+            "</code></td>" +
+            "<td>" +
+            escapeHtml(s.peer) +
+            "</td>" +
+            "<td>" +
+            escapeHtml(s.auth_method || "—") +
+            "</td>" +
+            "<td>" +
+            (s.key_id != null ? s.key_id : "—") +
+            "</td>" +
+            "<td class=\"mono\">" +
+            escapeHtml(s.key_fp || "—") +
+            "</td>" +
+            "<td>" +
+            (s.staff_port || "—") +
+            "</td>" +
+            "</tr>"
+          );
+        })
+        .join("");
+    } catch (e) {
+      tbody.innerHTML =
+        "<tr><td colspan=\"6\" class=\"muted-cell\">" +
+        escapeHtml(String(e.message || e)) +
+        "</td></tr>";
+    }
+  }
+
   if ($("deviceSearch")) {
     $("deviceSearch").addEventListener("input", refresh);
   }
   if ($("btnRefresh")) $("btnRefresh").addEventListener("click", refresh);
   if ($("btnBack")) $("btnBack").addEventListener("click", showList);
+  if ($("btnChSessions"))
+    $("btnChSessions").addEventListener("click", loadChSessions);
 
   refresh();
+  loadChSessions();
 
   var params = new URLSearchParams(location.search);
   var id = params.get("id") || params.get("location");

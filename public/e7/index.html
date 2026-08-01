@@ -161,6 +161,21 @@
       <span id="wsBadge" class="badge muted">ws off</span>
     </div>
     <pre id="detailOut" class="compact"></pre>
+    <div id="sshPanel" class="card" style="margin:.75rem 0;padding:.75rem 1rem">
+      <h3 style="margin:.2rem 0 .5rem;font-size:1rem">SSH / inventory</h3>
+      <p class="hint" style="margin:0 0 .5rem">
+        From shelf JSON <code>ssh</code> object (PR-9). Confirm pending pins on
+        <a href="/ssh-keys/">SSH Keys</a>.
+      </p>
+      <div class="kv-grid" id="sshKv">
+        <div><div class="k">client key</div><div class="v muted-cell">—</div></div>
+      </div>
+      <div class="row" style="margin-top:.5rem">
+        <a class="btn secondary" href="/ssh-keys/">Open SSH Keys / pending pins</a>
+        <button type="button" id="btnPendingPins" class="ghost">Refresh pending pins</button>
+      </div>
+      <pre id="pendingPinsOut" class="compact"></pre>
+    </div>
     <p id="ontsPageHint" class="hint"></p>
     <div class="table-wrap">
       <table class="data" id="ontsTable">
