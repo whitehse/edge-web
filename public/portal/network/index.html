@@ -5,39 +5,64 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>My service · home network</title>
   <link rel="stylesheet" href="/app.css"/>
+  <style>
+    .dev-row {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0; border-bottom: 1px solid var(--border);
+    }
+    .dev-row .name { font-weight: 600; min-width: 8rem; }
+    .dev-row .meta { color: var(--muted); font-size: 0.9rem; flex: 1; }
+    .wifi-form { display: grid; gap: 0.5rem; max-width: 22rem; margin-top: 0.5rem; }
+    .wifi-form label { display: grid; gap: 0.25rem; font-size: 0.9rem; }
+    .wifi-form input[type="text"], .wifi-form input[type="password"] {
+      padding: 0.4rem 0.55rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface-2, #12141a); color: inherit;
+    }
+    .pill {
+      display: inline-block; padding: 0.1rem 0.45rem; border-radius: 999px;
+      font-size: 0.75rem; background: var(--surface-2);
+    }
+    .pill.ok { background: rgba(34,197,94,0.2); color: #86efac; }
+    .pill.down { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .pill.paused { background: rgba(234,179,8,0.2); color: #fde047; }
+  </style>
 </head>
 <body class="app-shell chrome-member" data-nav="portal-network" data-title="Home network"
-      data-subtitle="Wi‑Fi and devices (Calix Cloud / ecoLink+ path)">
+      data-subtitle="Wi‑Fi and devices (ecoLink+ via Calix Cloud)">
 
   <section class="card">
     <h2>Gateway</h2>
-    <pre id="summary" class="compact">Loading…</pre>
+    <div id="summaryCards" class="hint">Loading…</div>
+    <pre id="summary" class="compact hidden"></pre>
   </section>
   <section class="card">
     <h2>Devices</h2>
-    <pre id="devices" class="compact">—</pre>
+    <div id="deviceList">—</div>
+    <p id="devMsg" class="hint"></p>
   </section>
   <section class="card">
-    <h2>Wi‑Fi</h2>
-    <pre id="wifi" class="compact">—</pre>
-    <p class="hint">Passphrases are never returned on GET (set via future PUT).</p>
+    <h2>Primary Wi‑Fi</h2>
+    <div id="wifiStatus" class="hint">—</div>
+    <form class="wifi-form" id="primaryForm">
+      <label>SSID <input type="text" id="primarySsid" autocomplete="off" required/></label>
+      <label>New passphrase (optional) <input type="password" id="primaryPsk" autocomplete="new-password"/></label>
+      <button type="submit" class="btn primary">Save primary Wi‑Fi</button>
+    </form>
+    <p class="hint">Passphrases are never returned on GET.</p>
+  </section>
+  <section class="card">
+    <h2>Guest Wi‑Fi</h2>
+    <form class="wifi-form" id="guestForm">
+      <label><input type="checkbox" id="guestEn"/> Guest network enabled</label>
+      <label>Guest SSID <input type="text" id="guestSsid" autocomplete="off"/></label>
+      <label>Guest passphrase (optional) <input type="password" id="guestPsk" autocomplete="new-password"/></label>
+      <button type="submit" class="btn secondary">Save guest Wi‑Fi</button>
+    </form>
+    <p id="wifiMsg" class="hint"></p>
   </section>
 
   <script src="/app.js"></script>
   <script src="/shell.js"></script>
-  <script>
-    (async function () {
-      const me = await fetch("/auth/me", { credentials: "same-origin" });
-      if (!me.ok) { location.href = "/portal/"; return; }
-      async function get(path, el) {
-        const r = await fetch(path, { credentials: "same-origin" });
-        const t = await r.text();
-        document.getElementById(el).textContent = r.status + "\n" + t;
-      }
-      await get("/api/v1/me/home", "summary");
-      await get("/api/v1/me/home/devices", "devices");
-      await get("/api/v1/me/home/wifi", "wifi");
-    })();
-  </script>
+  <script src="/portal/network/network.js"></script>
 </body>
 </html>

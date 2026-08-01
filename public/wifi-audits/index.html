@@ -5,9 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>WiFi audits · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <style>
+    .heat-wrap { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
+    #heatCanvas {
+      width: min(100%, 520px); height: auto; max-width: 520px;
+      background: var(--surface-2, #12141a); border: 1px solid var(--border);
+      border-radius: 8px; display: block;
+    }
+    .heat-legend {
+      display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem;
+      color: var(--muted);
+    }
+    .heat-legend span i {
+      display: inline-block; width: 12px; height: 12px; border-radius: 50%;
+      margin-right: 0.4rem; vertical-align: middle;
+    }
+    .audit-row { cursor: pointer; padding: 0.5rem 0; border-bottom: 1px solid var(--border); }
+    .audit-row:hover { background: var(--surface-2, rgba(255,255,255,0.03)); }
+    .audit-row.on { border-left: 3px solid var(--accent, #3d8bfd); padding-left: 0.5rem; }
+  </style>
 </head>
 <body class="app-shell" data-nav="wifi-audits" data-title="WiFi audits"
-      data-subtitle="Site survey walk paths (review)">
+      data-subtitle="Site survey walk paths + RF heatmap (CPE join)">
 
   <section class="card">
     <h2>Audits</h2>
@@ -15,14 +34,29 @@
   </section>
   <section class="card">
     <h2>Upload lab sample audit</h2>
+    <p class="hint">Includes <code>client_mac_hint</code> so geojson can join CH station series when available.</p>
     <button type="button" class="btn primary" id="btnSeed">POST sample walk</button>
     <pre id="out" class="compact"></pre>
   </section>
   <section class="card">
-    <h2>GeoJSON</h2>
-    <label>Audit id <input id="auditId" type="text"/></label>
-    <button type="button" class="btn secondary" id="btnGeo">Load geojson</button>
-    <pre id="geo" class="compact" style="max-height:16rem;overflow:auto"></pre>
+    <h2>Path + RF heatmap</h2>
+    <label>Audit id <input id="auditId" type="text" style="min-width:14rem"/></label>
+    <button type="button" class="btn secondary" id="btnGeo">Load heatmap</button>
+    <button type="button" class="btn secondary" id="btnDetail">Meta</button>
+    <p id="heatMeta" class="hint"></p>
+    <div class="heat-wrap">
+      <canvas id="heatCanvas" width="520" height="360" aria-label="Walk path heatmap"></canvas>
+      <div class="heat-legend">
+        <strong>RSSI (dBm)</strong>
+        <span><i style="background:#22c55e"></i>≥ −50 excellent</span>
+        <span><i style="background:#84cc16"></i>−50 … −60</span>
+        <span><i style="background:#eab308"></i>−60 … −70</span>
+        <span><i style="background:#f97316"></i>−70 … −80</span>
+        <span><i style="background:#ef4444"></i>&lt; −80 / none</span>
+        <span class="hint">Prefers <code>cpe_rssi_dbm</code>, else client RSSI. Labels always draw.</span>
+      </div>
+    </div>
+    <pre id="geo" class="compact" style="max-height:10rem;overflow:auto;margin-top:0.75rem"></pre>
   </section>
 
   <script src="/app.js"></script>
