@@ -41,8 +41,10 @@
         return;
       }
       el.innerHTML = items.map(function (o) {
-        var label = (o.severity === "critical" || o.severity === "major")
-          ? "Service disruption" : "Notice";
+        /* Prefer server member_label (K); fallback for older edgehost */
+        var label = o.member_label ||
+          ((o.severity === "critical" || o.severity === "major")
+            ? "Service disruption" : "Notice");
         return "<div class=\"stat-card\" style=\"margin-bottom:0.75rem\">" +
           "<div class=\"label\">" + label + "</div>" +
           "<div class=\"value\" style=\"font-size:1.1rem\">" + (o.title || "") + "</div>" +
