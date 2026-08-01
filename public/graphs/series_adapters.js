@@ -1009,6 +1009,82 @@ export function createAdapterHub(opts) {
       return;
     }
 
+    if (tid === "wifi.fw") {
+      const rid = resolveRouter(src && src.router_id);
+      if (!rid) {
+        cache[id] = {
+          panel: panel,
+          bundle: emptyBundle(
+            tid,
+            "Set a CPE id in the toolbar and click Apply CPE"
+          )
+        };
+        notifyPanel(id);
+        return;
+      }
+      try {
+        const mins = currentMinutes || 10;
+        const lim = mins <= 15 ? mins * 60 + 30 : 600;
+        const q =
+          "/api/v1/cpe/wifi/fw?minutes=" +
+          encodeURIComponent(mins) +
+          "&limit=" +
+          encodeURIComponent(lim) +
+          "&router_id=" +
+          encodeURIComponent(rid);
+        const r = await fetch(q, { credentials: "same-origin" });
+        const d = await r.json();
+        const pts = d && Array.isArray(d.points) ? d.points : [];
+        const mapped = pts.map(function (p) {
+          return {
+            t: parseTs(p.ts || p.t || p.time),
+            xretry_pct: Number(p.xretry_pct) || 0,
+            underrun_delta: Number(p.underrun_delta) || 0,
+            ppdu_ok: Number(p.ppdu_ok) || 0,
+            rssi_dbm: p.rssi_dbm != null ? Number(p.rssi_dbm) : null
+          };
+        });
+        cache[id] = {
+          panel: panel,
+          bundle: {
+            points: mapped,
+            series: [
+              {
+                key: "xretry_pct",
+                label: "xretry %",
+                color: "#e87a82",
+                width: 1.4,
+                fillAlpha: 0.05
+              },
+              {
+                key: "underrun_delta",
+                label: "underrun Δ",
+                color: "#e6b84d",
+                width: 1.2,
+                fillAlpha: 0
+              }
+            ],
+            markers: [],
+            refLines: [],
+            meta: {
+              title: "Wi‑Fi firmware health",
+              subtitle: rid + " · " + mapped.length + " samples",
+              lastPushMs: Date.now(),
+              stale: mapped.length === 0
+            },
+            yHints: { mode: "auto", includeZero: true }
+          }
+        };
+      } catch (e) {
+        cache[id] = {
+          panel: panel,
+          bundle: emptyBundle(tid, "Failed to load wifi/fw series")
+        };
+      }
+      notifyPanel(id);
+      return;
+    }
+
     if (tid === "wifi.client") {
       try {
         const bundle = await fetchClientSeries(panel);
@@ -1104,7 +1180,7 @@ export function createAdapterHub(opts) {
         if (p.collapsed) return;
         const t = p.typeId;
         if (t && t.indexOf("host.") === 0) needHost = true;
-        if (t === "wifi.radio" || t === "wifi.band") needHost = true;
+        if (t === "wifi.radio" || t === "wifi.band" || t === "wifi.fw") needHost = true;
         if (
           t === "flow.overlay" ||
           t === "flow.defects" ||

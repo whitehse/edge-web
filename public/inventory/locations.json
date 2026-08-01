@@ -1,6 +1,6 @@
 {
-  "v": 1,
-  "source": "edge-web inventory (lab fixture)",
+  "v": 2,
+  "source": "edge-web inventory (lab fixture, tap membership)",
   "updated_at": "2026-07-28T00:00:00Z",
   "locations": [
     {
@@ -27,10 +27,12 @@
         "model": "prplOS CPE",
         "status": "online",
         "mac": "02:1a:2b:3c:4d:5e",
-        "software": "cpe_agent · OpenWrt · callhome",
-        "wan": "GPON · DHCP",
+        "software": "cpe_agent \u00b7 OpenWrt \u00b7 callhome",
+        "wan": "GPON \u00b7 DHCP",
         "last_seen": "moments ago"
-      }
+      },
+      "tap_id": "tap-north-ridge",
+      "account_id": "A-10428"
     },
     {
       "id": "loc-elm-408",
@@ -56,10 +58,12 @@
         "model": "OpenWrt CPE",
         "status": "online",
         "mac": "02:aa:bb:cc:dd:01",
-        "software": "cpe_agent · OpenWrt",
-        "wan": "GPON · DHCP",
+        "software": "cpe_agent \u00b7 OpenWrt",
+        "wan": "GPON \u00b7 DHCP",
         "last_seen": "2 min ago"
-      }
+      },
+      "tap_id": "tap-north-ridge",
+      "account_id": "A-10991"
     },
     {
       "id": "loc-pine-9",
@@ -85,10 +89,12 @@
         "model": "prplOS CPE",
         "status": "offline",
         "mac": "02:11:22:33:44:55",
-        "software": "cpe_agent · OpenWrt",
-        "wan": "—",
+        "software": "cpe_agent \u00b7 OpenWrt",
+        "wan": "\u2014",
         "last_seen": "6 h ago"
-      }
+      },
+      "tap_id": "tap-pine-hollow",
+      "account_id": "A-11204"
     },
     {
       "id": "loc-meadow-77",
@@ -114,10 +120,12 @@
         "model": "prplOS CPE",
         "status": "online",
         "mac": "02:fe:dc:ba:98:76",
-        "software": "cpe_agent · OpenWrt",
-        "wan": "GPON · DHCP",
+        "software": "cpe_agent \u00b7 OpenWrt",
+        "wan": "GPON \u00b7 DHCP",
         "last_seen": "moments ago"
-      }
+      },
+      "tap_id": "tap-3",
+      "account_id": "A-10003"
     }
   ]
 }

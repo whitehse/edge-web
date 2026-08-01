@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My service · map</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <style>
+    body.chrome-member { --sidebar-w: 13rem; }
+    #mapCanvas {
+      width: 100%; min-height: 420px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--surface);
+      position: relative; overflow: hidden;
+    }
+    .map-dot {
+      position: absolute; width: 12px; height: 12px; border-radius: 50%;
+      transform: translate(-50%, -50%); border: 2px solid #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,.35);
+    }
+    .map-dot.self { width: 16px; height: 16px; background: var(--accent); }
+    .map-dot.ok { background: var(--ok); }
+    .map-dot.down { background: var(--bad); }
+    .map-dot.unknown { background: var(--muted); }
+    .map-legend { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem; font-size: 0.85rem; color: var(--muted); }
+  </style>
+</head>
+<body class="app-shell chrome-member" data-nav="portal-map" data-title="Neighborhood"
+      data-subtitle="Your location and Tap neighbors (anonymized)">
+
+  <section class="card">
+    <h2>Anonymized map</h2>
+    <p class="hint">
+      You appear at your service address. Neighbors are shown near the shared Tap —
+      not at their home GPS. No names or serial numbers.
+    </p>
+    <div id="mapCanvas" aria-label="Member map"></div>
+    <div class="map-legend">
+      <span>● You</span>
+      <span style="color:var(--ok)">● Neighbor up</span>
+      <span style="color:var(--bad)">● Neighbor down</span>
+    </div>
+    <pre id="mapRaw" class="compact" style="margin-top:1rem;max-height:12rem;overflow:auto"></pre>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/portal/map/map.js"></script>
+</body>
+</html>

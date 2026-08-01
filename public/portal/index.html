@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My service · status</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <style>
+    body.chrome-member { --sidebar-w: 13rem; }
+    .portal-hero { margin-bottom: 1.25rem; }
+    .portal-hero h1 { font-family: var(--font-display); font-size: 1.75rem; margin: 0 0 0.35rem; }
+    .status-pill {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.75rem; border-radius: 999px;
+      font-size: 0.85rem; font-weight: 600;
+      background: var(--surface-2); border: 1px solid var(--border);
+    }
+    .status-pill.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--border)); }
+    .status-pill.down { color: var(--bad); }
+    .status-pill.degraded { color: var(--warn); }
+    .portal-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  </style>
+</head>
+<body class="app-shell chrome-member" data-nav="portal-status" data-title="My service"
+      data-subtitle="Service status for your account">
+
+  <div id="loginGate" class="auth-gate hidden">
+    <section class="card">
+      <p class="welcome">Member portal</p>
+      <p class="hint" style="margin-bottom:1rem">
+        Lab customer login (same password as operator lab). Provide your account id.
+      </p>
+      <label>Account id
+        <input id="acctId" type="text" value="A-10428" autocomplete="username"/>
+      </label>
+      <label>Password
+        <input id="labPw" type="password" value="lab" autocomplete="current-password"/>
+      </label>
+      <div class="row">
+        <button type="button" id="btnLogin" class="btn primary">Sign in</button>
+      </div>
+      <pre id="authOut" class="compact hidden"></pre>
+    </section>
+  </div>
+
+  <div id="portalRoot" class="hidden">
+    <div class="portal-hero">
+      <h1>Your service</h1>
+      <span class="status-pill" id="statusPill">…</span>
+    </div>
+    <div class="portal-grid">
+      <section class="card">
+        <h2>Fiber / ONT</h2>
+        <div class="stat-card" style="box-shadow:none;border:0;padding:0">
+          <div class="label">ONT status</div>
+          <div class="value" id="ontStatus" style="font-size:1.35rem">—</div>
+          <div class="delta" id="ontMeta">rx / PON</div>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Home router</h2>
+        <div class="label">CPE</div>
+        <div class="value" id="cpeId" style="font-size:1.1rem">—</div>
+        <div class="delta" id="cpeOnline">online state</div>
+      </section>
+      <section class="card">
+        <h2>Neighbors</h2>
+        <p class="hint">See who’s up or down near your Tap (anonymized map).</p>
+        <a class="btn secondary" href="/portal/map/">Open map</a>
+      </section>
+    </div>
+    <p class="hint" style="margin-top:1.5rem" id="accountLine"></p>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/portal/portal.js"></script>
+</body>
+</html>

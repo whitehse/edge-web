@@ -27,7 +27,16 @@
     { id: "ssh-keys", href: "/ssh-keys/", label: "SSH Keys", ico: "🔑" },
     { section: "Tools" },
     { id: "documentation", href: "/documentation/", label: "Documentation", ico: "☰" },
-    { id: "lab", href: "/lab/", label: "Lab console", ico: "⚙" }
+    { id: "lab", href: "/lab/", label: "Lab console", ico: "⚙", adminOnly: true },
+    { section: "Member" },
+    { id: "portal-status", href: "/portal/", label: "Member portal", ico: "◇" }
+  ];
+
+  var MEMBER_NAV = [
+    { section: "My service" },
+    { id: "portal-status", href: "/portal/", label: "Status", ico: "◈" },
+    { id: "portal-map", href: "/portal/map/", label: "Map", ico: "◎" },
+    { id: "portal-service", href: "/portal/service/", label: "Details", ico: "⌂" }
   ];
 
   var THEME_KEY = "edgehost-theme";
@@ -56,6 +65,9 @@
     if (p.indexOf("/ca") === 0) return "ca";
     if (p.indexOf("/documentation") === 0) return "documentation";
     if (p.indexOf("/lab") === 0) return "lab";
+    if (p.indexOf("/portal/map") === 0) return "portal-map";
+    if (p.indexOf("/portal/service") === 0) return "portal-service";
+    if (p.indexOf("/portal") === 0) return "portal-status";
     return "";
   }
 
@@ -102,12 +114,22 @@
     applyTheme(cur === "light" ? "dark" : "light");
   }
 
-  function buildNavHtml(active) {
+  function isMemberPath() {
+    var p = location.pathname || "";
+    return p.indexOf("/portal") === 0 || document.body.classList.contains("chrome-member");
+  }
+
+  function buildNavHtml(active, opts) {
+    var items = isMemberPath() ? MEMBER_NAV : NAV;
+    var isAdmin = opts && opts.isAdmin;
     var html = "";
-    for (var i = 0; i < NAV.length; i++) {
-      var n = NAV[i];
+    for (var i = 0; i < items.length; i++) {
+      var n = items[i];
       if (n.section) {
         html += '<div class="nav-section-label">' + n.section + "</div>";
+        continue;
+      }
+      if (n.adminOnly && !isAdmin) {
         continue;
       }
       var cls = "nav-item" + (n.id === active ? " active" : "");
@@ -154,7 +176,7 @@
       '<span class="app-brand-tag">Network edge</span>' +
       "</span></a>" +
       '<nav class="app-nav" aria-label="Primary">' +
-      buildNavHtml(active) +
+      buildNavHtml(active, { isAdmin: true }) +
       "</nav>" +
       '<div class="sidebar-foot">' +
       '<div class="sidebar-user">' +

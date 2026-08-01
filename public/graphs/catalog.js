@@ -60,6 +60,14 @@ export const GRAPH_TYPES = [
     live: true
   },
   {
+    id: "wifi.fw",
+    group: "Wi‑Fi",
+    label: "Firmware radio health",
+    desc: "QDF xretry / underrun / ppdu (host wifi.fw parity)",
+    sourceKinds: ["cpe"],
+    live: true
+  },
+  {
     id: "flow.overlay",
     group: "Flows",
     label: "Flow overlay",

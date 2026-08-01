@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My service · details</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell chrome-member" data-nav="portal-service" data-title="Service details"
+      data-subtitle="Your premise equipment (self only)">
+
+  <section class="card">
+    <h2>Service details</h2>
+    <p class="hint">Full detail for your location only — never other members’ data.</p>
+    <pre id="svcOut" class="compact" style="max-height:28rem;overflow:auto">Loading…</pre>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script>
+    (async function () {
+      const rMe = await fetch("/auth/me", { credentials: "same-origin" });
+      if (!rMe.ok) { location.href = "/portal/"; return; }
+      const auth = await rMe.json();
+      if (!(auth.account_id || (auth.roles || []).indexOf("customer") >= 0)) {
+        location.href = "/portal/";
+        return;
+      }
+      const r = await fetch("/api/v1/me/service", { credentials: "same-origin" });
+      const d = await r.json();
+      document.getElementById("svcOut").textContent = JSON.stringify(d, null, 2);
+    })();
+  </script>
+</body>
+</html>
