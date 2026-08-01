@@ -994,6 +994,60 @@
   function drawOverlayRates() {
     var canvas = $("overlayChart");
     if (!canvas) return;
+    /* Prefer chart_view when embed module loaded (top streams as series). */
+    if (
+      window.EdgeChartEmbed &&
+      typeof EdgeChartEmbed.plot === "function" &&
+      state.overlayOrder &&
+      state.overlayOrder.length
+    ) {
+      var ptsMap = {};
+      var seriesDefs = [];
+      var i, k, entry, j, t, rate, pt;
+      var t0 = state.t0 || Date.now() - 3600e3;
+      var t1 = state.t1 || Date.now();
+      var maxStreams = 8;
+      for (i = 0; i < state.overlayOrder.length && seriesDefs.length < maxStreams; i++) {
+        k = state.overlayOrder[i];
+        if (state.overlayHidden[k]) continue;
+        entry = state.overlay[k];
+        if (!entry || !entry.points || !entry.points.length) continue;
+        var key = "s" + seriesDefs.length;
+        seriesDefs.push({
+          key: key,
+          label: (entry.label || k).slice(0, 28),
+          color: entry.color || OVERLAY_COLORS[seriesDefs.length % OVERLAY_COLORS.length]
+        });
+        for (j = 0; j < entry.points.length; j++) {
+          t = parseTs(entry.points[j].ts);
+          if (isNaN(t)) continue;
+          rate =
+            (Number(entry.points[j].rate_down_bps) || 0) +
+            (Number(entry.points[j].rate_up_bps) || 0);
+          pt = ptsMap[t] || { ts: t };
+          pt[key] = rate;
+          ptsMap[t] = pt;
+        }
+      }
+      var pts = Object.keys(ptsMap)
+        .map(function (x) {
+          return ptsMap[x];
+        })
+        .sort(function (a, b) {
+          return a.ts - b.ts;
+        });
+      if (pts.length && seriesDefs.length) {
+        EdgeChartEmbed.plot(canvas, pts, seriesDefs, {
+          height: 200,
+          t0: t0,
+          t1: t1,
+          live: true,
+          windowMinutes: Math.max(1, (t1 - t0) / 60000),
+          emptyMsg: "Waiting for stream series…"
+        });
+        return;
+      }
+    }
     var g = setupCanvas(canvas, 200);
     var ctx = g.ctx;
     var cssW = g.w;

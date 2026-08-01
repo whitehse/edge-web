@@ -743,7 +743,32 @@
    *  live: true (default) = wall-clock scroll + one-tick morph on right edge
    *  height: canvas css height
    */
+  /**
+   * Prefer shared chart_view (WebGPU) when page_embed.js loaded (PR-7).
+   * Falls back to legacy Canvas2D plotter below.
+   */
   function plotSeries(canvas, pts, series, opts) {
+    if (!canvas) return;
+    opts = opts || {};
+    if (
+      !opts.forceLegacy &&
+      typeof window !== "undefined" &&
+      window.EdgeChartEmbed &&
+      typeof window.EdgeChartEmbed.plot === "function"
+    ) {
+      window.EdgeChartEmbed.plot(canvas, pts, series, opts).then(function (ok) {
+        if (!ok) {
+          plotSeriesLegacy(canvas, pts, series, Object.assign({}, opts, {
+            forceLegacy: true
+          }));
+        }
+      });
+      return;
+    }
+    plotSeriesLegacy(canvas, pts, series, opts);
+  }
+
+  function plotSeriesLegacy(canvas, pts, series, opts) {
     if (!canvas) return;
     opts = opts || {};
     var g = setupCanvas(canvas, opts.height || 240);
