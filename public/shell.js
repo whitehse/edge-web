@@ -12,6 +12,8 @@
     { id: "home", href: "/", label: "Home", ico: "◈" },
     { id: "devices", href: "/devices/", label: "Locations & devices", ico: "⌂" },
     { id: "map", href: "/map/", label: "Status map", ico: "◎" },
+    { id: "outages", href: "/outages/", label: "Outages", ico: "⚠" },
+    { id: "wifi-audits", href: "/wifi-audits/", label: "WiFi audits", ico: "📶" },
     { section: "Telemetry" },
     { id: "graphs", href: "/graphs/", label: "Graphs", ico: "▤" },
     { id: "host", href: "/host/", label: "CPE host & Wi‑Fi", ico: "▣" },
@@ -36,7 +38,9 @@
     { section: "My service" },
     { id: "portal-status", href: "/portal/", label: "Status", ico: "◈" },
     { id: "portal-map", href: "/portal/map/", label: "Map", ico: "◎" },
-    { id: "portal-service", href: "/portal/service/", label: "Details", ico: "⌂" }
+    { id: "portal-service", href: "/portal/service/", label: "Details", ico: "⌂" },
+    { id: "portal-outages", href: "/portal/outages/", label: "Outages", ico: "⚠" },
+    { id: "portal-network", href: "/portal/network/", label: "Home network", ico: "📶" }
   ];
 
   var THEME_KEY = "edgehost-theme";
@@ -67,7 +71,11 @@
     if (p.indexOf("/lab") === 0) return "lab";
     if (p.indexOf("/portal/map") === 0) return "portal-map";
     if (p.indexOf("/portal/service") === 0) return "portal-service";
+    if (p.indexOf("/portal/outages") === 0) return "portal-outages";
+    if (p.indexOf("/portal/network") === 0) return "portal-network";
     if (p.indexOf("/portal") === 0) return "portal-status";
+    if (p.indexOf("/outages") === 0) return "outages";
+    if (p.indexOf("/wifi-audits") === 0) return "wifi-audits";
     return "";
   }
 

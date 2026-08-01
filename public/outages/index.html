@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Outages · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell" data-nav="outages" data-title="Outages"
+      data-subtitle="Known outages and notices (admin write)">
+
+  <section class="card">
+    <h2>Open / recent outages</h2>
+    <div id="list" class="panel-list">Loading…</div>
+  </section>
+
+  <section class="card">
+    <h2>Create outage (admin)</h2>
+    <label>Title <input id="title" type="text" value="Lab maintenance window"/></label>
+    <label>Severity
+      <select id="severity">
+        <option>info</option>
+        <option selected>minor</option>
+        <option>major</option>
+        <option>critical</option>
+      </select>
+    </label>
+    <label>Scope type
+      <select id="scopeType">
+        <option>network</option>
+        <option selected>tap</option>
+        <option>location</option>
+        <option>account</option>
+        <option>pon</option>
+      </select>
+    </label>
+    <label>Scope id <input id="scopeId" type="text" value="tap-north-ridge"/></label>
+    <label>Summary <input id="summary" type="text" value="Published from operator UI"/></label>
+    <div class="row">
+      <button type="button" class="btn primary" id="btnCreate">Publish</button>
+    </div>
+    <pre id="out" class="compact"></pre>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/outages/outages.js"></script>
+</body>
+</html>

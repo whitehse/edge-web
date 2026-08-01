@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My service · home network</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell chrome-member" data-nav="portal-network" data-title="Home network"
+      data-subtitle="Wi‑Fi and devices (Calix Cloud / ecoLink+ path)">
+
+  <section class="card">
+    <h2>Gateway</h2>
+    <pre id="summary" class="compact">Loading…</pre>
+  </section>
+  <section class="card">
+    <h2>Devices</h2>
+    <pre id="devices" class="compact">—</pre>
+  </section>
+  <section class="card">
+    <h2>Wi‑Fi</h2>
+    <pre id="wifi" class="compact">—</pre>
+    <p class="hint">Passphrases are never returned on GET (set via future PUT).</p>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script>
+    (async function () {
+      const me = await fetch("/auth/me", { credentials: "same-origin" });
+      if (!me.ok) { location.href = "/portal/"; return; }
+      async function get(path, el) {
+        const r = await fetch(path, { credentials: "same-origin" });
+        const t = await r.text();
+        document.getElementById(el).textContent = r.status + "\n" + t;
+      }
+      await get("/api/v1/me/home", "summary");
+      await get("/api/v1/me/home/devices", "devices");
+      await get("/api/v1/me/home/wifi", "wifi");
+    })();
+  </script>
+</body>
+</html>

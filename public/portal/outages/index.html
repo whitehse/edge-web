@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My service · outages</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell chrome-member" data-nav="portal-outages" data-title="Outages &amp; notices"
+      data-subtitle="Known issues that may affect your service">
+
+  <section class="card">
+    <h2>Affecting you</h2>
+    <p class="hint">Anonymized notices — no other members’ details.</p>
+    <div id="list">Loading…</div>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script>
+    (async function () {
+      const me = await fetch("/auth/me", { credentials: "same-origin" });
+      if (!me.ok) { location.href = "/portal/"; return; }
+      const auth = await me.json();
+      if (!(auth.account_id || (auth.roles || []).indexOf("customer") >= 0)) {
+        location.href = "/portal/";
+        return;
+      }
+      const r = await fetch("/api/v1/me/outages", { credentials: "same-origin" });
+      const d = await r.json();
+      const el = document.getElementById("list");
+      if (!r.ok) {
+        el.textContent = d.error === "FEATURE_DISABLED"
+          ? "Outages not enabled."
+          : ("Error " + r.status);
+        return;
+      }
+      const items = d.outages || [];
+      if (!items.length) {
+        el.innerHTML = "<p class=\"hint\">No open notices for your service.</p>";
+        return;
+      }
+      el.innerHTML = items.map(function (o) {
+        var label = (o.severity === "critical" || o.severity === "major")
+          ? "Service disruption" : "Notice";
+        return "<div class=\"stat-card\" style=\"margin-bottom:0.75rem\">" +
+          "<div class=\"label\">" + label + "</div>" +
+          "<div class=\"value\" style=\"font-size:1.1rem\">" + (o.title || "") + "</div>" +
+          "<div class=\"delta\">" + (o.summary || "") + "</div></div>";
+      }).join("");
+    })();
+  </script>
+</body>
+</html>
