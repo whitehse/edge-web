@@ -319,8 +319,43 @@
   }
 
   /**
-   * Association / security fault badges from hostapd fields
-   * (inactive_msec, ptk_state, mic_failures, assoc_flags).
+   * Airtime efficiency: actual thr / PHY rate.
+   * Low efficiency with high PHY often means retries, interference, or idle
+   * negotiated rate (not a hard fault alone).
+   */
+  function stationEfficiency(s) {
+    var phy = Number(s && s.phy_mode) || 0;
+    var txPhy =
+      sanitizeLinkKbps(s && s.tx_bitrate_kbps, phy) * 1000; /* kbps → bps */
+    var rxPhy = sanitizeLinkKbps(s && s.rx_bitrate_kbps, phy) * 1000;
+    var thrTx = Number(s && s.tx_throughput_bps) || 0;
+    var thrRx = Number(s && s.rx_throughput_bps) || 0;
+    var thr = Math.max(thrTx, thrRx);
+    var phyMax = Math.max(txPhy, rxPhy);
+    /* Need meaningful thr (>50 kbps) and PHY to score. */
+    if (thr < 50000 || phyMax < 1e6) {
+      return { text: "—", title: "Need active thr + PHY to score efficiency", pct: null };
+    }
+    var pct = (100 * thr) / phyMax;
+    if (pct > 100) pct = 100;
+    var title =
+      "Actual thr / PHY = " +
+      pct.toFixed(1) +
+      "% (thr " +
+      fmtThroughput(thr) +
+      " / PHY " +
+      fmtThroughput(phyMax) +
+      "). Low + high PHY often means airtime waste.";
+    return {
+      text: pct.toFixed(0) + "%",
+      title: title,
+      pct: pct,
+      low: pct < 5 && thr > 100000
+    };
+  }
+
+  /**
+   * Association / security / retry fault badges from hostapd + driver fields.
    */
   function stationStatusBadges(s) {
     var badges = [];
@@ -328,9 +363,14 @@
     var ptk = Number(s && s.ptk_state) || 0;
     var mic = Number(s && s.mic_failures) || 0;
     var flags = Number(s && s.assoc_flags) || 0;
+    var retryD = Number(s && s.tx_retry_delta) || 0;
+    var failD = Number(s && s.tx_failed_delta) || 0;
+    var retries = Number(s && s.tx_retries) || 0;
+    var failed = Number(s && s.tx_failed) || 0;
     var AUTH = 0x1;
     var ASSOC = 0x2;
     var AUTHORIZED = 0x4;
+    var eff = stationEfficiency(s);
 
     if (inactive >= 60000) {
       badges.push({
@@ -371,6 +411,35 @@
         cls: "sta-badge sta-mic",
         text: "MIC " + mic,
         title: "TKIP MIC failures (local+remote) = " + mic
+      });
+    }
+    if (retryD >= 20 || failD >= 5) {
+      badges.push({
+        cls: "sta-badge sta-retry",
+        text: failD >= 5 ? "fail +" + failD : "retry +" + retryD,
+        title:
+          "Per-tick TX retry Δ=" +
+          retryD +
+          " failed Δ=" +
+          failD +
+          " (cumulative retries=" +
+          retries +
+          " failed=" +
+          failed +
+          ")"
+      });
+    } else if (retries > 0 && retries >= 500) {
+      badges.push({
+        cls: "sta-badge sta-retry-soft",
+        text: "rtry " + retries,
+        title: "Cumulative TX retries=" + retries + " failed=" + failed
+      });
+    }
+    if (eff.low) {
+      badges.push({
+        cls: "sta-badge sta-eff",
+        text: "low-eff",
+        title: eff.title
       });
     }
     if (!badges.length) {
@@ -1247,6 +1316,64 @@
       });
     restPollStations();
     restPollWifiFw();
+    /* proc_stats disabled on cpe_agent — skip Processes REST poll */
+  }
+
+  /** Merge process snapshot: keep live CPU/RSS; never freeze on a zero-cpu dump. */
+  function applyProcSnapshot(incoming) {
+    if (!Array.isArray(incoming) || !incoming.length) return false;
+    var prev = state.procs || [];
+    var prevCpuNz = 0;
+    var i;
+    for (i = 0; i < prev.length; i++) {
+      if (Number(prev[i].cpu_pct) > 0) prevCpuNz++;
+    }
+    var nextCpuNz = 0;
+    var nextMaxTs = 0;
+    for (i = 0; i < incoming.length; i++) {
+      if (Number(incoming[i].cpu_pct) > 0) nextCpuNz++;
+      var t = parseTs(incoming[i].last_ts || incoming[i].ts);
+      if (!isNaN(t) && t > nextMaxTs) nextMaxTs = t;
+    }
+    /* Reject a large all-idle dump when we already have live CPU rows. */
+    if (
+      prevCpuNz >= 3 &&
+      nextCpuNz === 0 &&
+      incoming.length >= Math.max(16, prev.length * 0.6)
+    ) {
+      return false;
+    }
+    /* Thin partial (< half) only if it has no better CPU signal. */
+    if (
+      prev.length > 32 &&
+      incoming.length < prev.length * 0.5 &&
+      nextCpuNz <= prevCpuNz
+    ) {
+      return false;
+    }
+    state.procs = incoming;
+    state.procsLastMs = nextMaxTs || Date.now();
+    return true;
+  }
+
+  /** Full process table REST bootstrap (WS procs watch can lag on reconnect). */
+  function restPollProcs() {
+    var opts = seriesOpts();
+    var q = "/api/v1/cpe/procs?limit=512";
+    if (opts.router_id) {
+      q += "&router_id=" + encodeURIComponent(opts.router_id);
+    }
+    fetch(q, { credentials: "same-origin" })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (d) {
+        if (!d || d.ok === false || !Array.isArray(d.processes)) return;
+        if (applyProcSnapshot(d.processes)) renderProcs();
+      })
+      .catch(function () {
+        /* ignore */
+      });
   }
 
   /** QDF HTT radio health (xretry / underrun / PPDU) for Radio health chart. */
@@ -1477,6 +1604,8 @@
       phy_mode: phy,
       tx_retries: Number(s.tx_retries) || 0,
       tx_failed: Number(s.tx_failed) || 0,
+      tx_retry_delta: Number(s.tx_retry_delta) || 0,
+      tx_failed_delta: Number(s.tx_failed_delta) || 0,
       _live: 1
     };
   }
@@ -1588,7 +1717,8 @@
     var rssiCanvas = $("clientRssiChart_" + safe);
     var rateCanvas = $("clientRateChart_" + safe);
     var thrCanvas = $("clientThrChart_" + safe);
-    if (!rssiCanvas && !rateCanvas && !thrCanvas) return;
+    var retryCanvas = $("clientRetryChart_" + safe);
+    if (!rssiCanvas && !rateCanvas && !thrCanvas && !retryCanvas) return;
     var pts = clientSeriesForChart(mac);
     /* Sanitize + smooth PHY rates: fix residual QCA 10×, tame last-MPDU jumps. */
     var ratePts = smoothRatePts(
@@ -1610,6 +1740,27 @@
         rx_mbps: (Number(p.rx_throughput_bps) || 0) / 1e6
       };
     });
+    /* Prefer agent deltas; fall back to cumulative differencing for old data. */
+    var retryPts = [];
+    var ri;
+    var prevR = null;
+    var prevF = null;
+    for (ri = 0; ri < pts.length; ri++) {
+      var rp = pts[ri];
+      var rd = Number(rp.tx_retry_delta);
+      var fd = Number(rp.tx_failed_delta);
+      var rc = Number(rp.tx_retries) || 0;
+      var fc = Number(rp.tx_failed) || 0;
+      if (!isFinite(rd) || rd < 0) {
+        rd = prevR != null && rc >= prevR ? rc - prevR : 0;
+      }
+      if (!isFinite(fd) || fd < 0) {
+        fd = prevF != null && fc >= prevF ? fc - prevF : 0;
+      }
+      prevR = rc;
+      prevF = fc;
+      retryPts.push({ ts: rp.ts, retry_delta: rd, failed_delta: fd });
+    }
     var win = {
       windowMinutes: state.minutes || selectedMinutes(),
       live: true,
@@ -1685,6 +1836,36 @@
           yLabel: "Mbps",
           fmtY: function (v) {
             return (Number(v) || 0).toFixed(v < 10 ? 2 : 1) + " Mbps";
+          }
+        },
+        win
+      )
+    );
+    plotSeries(
+      retryCanvas,
+      retryPts,
+      [
+        {
+          key: "retry_delta",
+          color: "#e87a82",
+          width: 2.2,
+          fill: "rgba(232,122,130,0.10)",
+          showTip: true
+        },
+        {
+          key: "failed_delta",
+          color: "#f0a040",
+          width: 1.8,
+          showTip: true
+        }
+      ],
+      Object.assign(
+        {
+          chartId: "clientRetry_" + safe,
+          ymin: 0,
+          yLabel: "Δ / sample",
+          fmtY: function (v) {
+            return (Number(v) || 0).toFixed(0);
           }
         },
         win
@@ -1785,7 +1966,7 @@
             "no associations.";
         }
         tb.innerHTML =
-          '<tr><td colspan="11" class="hint">' + esc(emptyHint) + "</td></tr>";
+          '<tr><td colspan="12" class="hint">' + esc(emptyHint) + "</td></tr>";
         return;
       }
       var html = "";
@@ -1801,6 +1982,7 @@
         var tx = stationLinkTx(s);
         var rx = stationLinkRx(s);
         var thr = stationThroughput(s);
+        var eff = stationEfficiency(s);
         var chains = fmtChainRssi(s);
         var stBadges = stationStatusBadges(s);
         var seen = clientSeenAge(s);
@@ -1850,6 +2032,13 @@
           '">' +
           esc(thr.text) +
           "</td>" +
+          '<td class="rate-cell' +
+          (eff.low ? " eff-low" : "") +
+          '" title="' +
+          esc(eff.title || "Airtime efficiency") +
+          '">' +
+          esc(eff.text) +
+          "</td>" +
           '<td class="status-cell">' +
           stBadges.html +
           "</td>" +
@@ -1863,7 +2052,7 @@
           html +=
             '<tr class="client-detail" data-mac="' +
             esc(mk) +
-            '"><td colspan="11">' +
+            '"><td colspan="12">' +
             '<div class="client-detail-head">' +
             "<div><strong>Coverage walk</strong> · <code>" +
             esc(mac) +
@@ -1892,6 +2081,11 @@
             esc(safe) +
             '" width="360" height="140"></canvas>' +
             '<p class="client-detail-hint">Real data rate. Near zero when idle; run iperf/speedtest for a load test.</p></div>' +
+            '<div><div class="client-detail-title">TX retries / fails — per sample Δ</div>' +
+            '<canvas id="clientRetryChart_' +
+            esc(safe) +
+            '" width="360" height="140"></canvas>' +
+            '<p class="client-detail-hint">Red = retry Δ, orange = failed Δ. Spikes during walks = RF stress.</p></div>' +
             "</div></td></tr>";
         }
       }
@@ -2500,6 +2694,7 @@
       var xr = Number(fp.xretry_pct) || 0;
       var und = Number(fp.underrun_delta) || 0;
       var pp = Number(fp.ppdu_ok_delta) || 0;
+      var fr = Number(fp.rssi);
       if (!cur) {
         fwAgg[fkey] = {
           ts: fp.ts,
@@ -2507,13 +2702,18 @@
           underrun_delta: und,
           ppdu_ok_delta: pp,
           /* Scale PPDU to fit % axis (~100 PPDU/s → 100). */
-          ppdu_scaled: Math.min(100, pp / 10)
+          ppdu_scaled: Math.min(100, pp / 10),
+          rssi: isFinite(fr) && fr !== 0 ? fr : null
         };
       } else {
         if (xr > cur.xretry_pct) cur.xretry_pct = xr;
         cur.underrun_delta += und;
         cur.ppdu_ok_delta += pp;
         cur.ppdu_scaled = Math.min(100, cur.ppdu_ok_delta / 10);
+        if (isFinite(fr) && fr !== 0) {
+          if (cur.rssi == null) cur.rssi = fr;
+          else cur.rssi = Math.min(cur.rssi, fr);
+        }
       }
     }
     for (fi in fwAgg) {
@@ -2562,6 +2762,13 @@
               label: "3% xretry caution"
             }
           ],
+          dual: {
+            key: "rssi",
+            color: "#5ad67d",
+            fmtY: function (v) {
+              return (Number(v) || 0).toFixed(0) + " dBm";
+            }
+          },
           fmtY: function (v) {
             return v.toFixed(v < 10 ? 1 : 0);
           },
@@ -2574,6 +2781,9 @@
       )
     );
 
+    /* Fault timeline: xretry base + join/leave/error event markers. */
+    drawFaultTimeline($("faultChart"), fwList, state.wifiEv || [], win);
+
     /* Expanded process sparklines also scroll/morph with the same loop */
     var pid;
     for (pid in state.expanded) {
@@ -2584,6 +2794,160 @@
     /* Coverage-walk charts: live tip from station snapshot + CH history. */
     if (anyClientExpanded()) {
       renderExpandedClientCharts();
+    }
+  }
+
+  /**
+   * Fault timeline: plot xretry and overlay join/leave/error markers.
+   * Uses plotSeries for the base line, then draws event ticks on top.
+   */
+  function drawFaultTimeline(canvas, fwList, events, win) {
+    if (!canvas) return;
+    var base = (fwList || []).map(function (p) {
+      return { ts: p.ts, xretry_pct: Number(p.xretry_pct) || 0 };
+    });
+    /* Inject zero-height points at event times so the window spans them. */
+    var i;
+    var evPts = [];
+    for (i = 0; i < (events || []).length; i++) {
+      var e = events[i];
+      if (!e || !e.ts) continue;
+      var kind = String(e.event || "").toLowerCase();
+      var y = kind === "join" ? 2 : kind === "leave" ? 4 : kind === "error" ? 6 : 3;
+      evPts.push({
+        ts: e.ts,
+        xretry_pct: null,
+        _ev: kind,
+        _yMark: y,
+        _mac: e.client_mac || e.message || ""
+      });
+    }
+    plotSeries(
+      canvas,
+      base.length ? base : [{ ts: new Date().toISOString(), xretry_pct: 0 }],
+      [
+        {
+          key: "xretry_pct",
+          color: "rgba(232,122,130,0.85)",
+          width: 2.0,
+          fill: "rgba(232,122,130,0.08)",
+          showTip: true
+        }
+      ],
+      Object.assign(
+        {
+          chartId: "fault",
+          height: 200,
+          ymin: 0,
+          yLabel: "xretry %",
+          refLines: [
+            {
+              value: 3,
+              color: "#e87a82",
+              dash: [4, 4],
+              label: "3%"
+            }
+          ],
+          fmtY: function (v) {
+            return v.toFixed(v < 10 ? 1 : 0);
+          },
+          lastPushMs: Math.max(
+            state.lastWifiFwMs || 0,
+            state.lastWifiPushMs || 0,
+            state.lastStationsMs || 0
+          )
+        },
+        win || {}
+      )
+    );
+    /* Overlay event markers without re-clearing the canvas. */
+    if (!evPts.length) {
+      if ($("faultMeta")) {
+        $("faultMeta").textContent =
+          (base.length ? base.length + " xretry pts" : "no FW") +
+          " · 0 events";
+      }
+      return;
+    }
+    var ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    var dpr = window.devicePixelRatio || 1;
+    var W = canvas.width / dpr;
+    var H = canvas.height / dpr;
+    var padL = 68;
+    var padR = 18;
+    var padT = 22;
+    var padB = 36;
+    var nowMs = Date.now();
+    var winMs = ((win && win.windowMinutes) || state.minutes || 10) * 60 * 1000;
+    var t1 = nowMs;
+    var t0 = nowMs - winMs;
+    var lastPush = Math.max(
+      state.lastWifiFwMs || 0,
+      state.lastWifiPushMs || 0
+    );
+    if (typeof LF !== "undefined" && LF.liveWindow) {
+      var ext = dataTimeExtent(base);
+      var lw = LF.liveWindow({
+        nowMs: nowMs,
+        durationMs: winMs,
+        dataEndMs: ext ? ext.tmax : nowMs,
+        lastPushMs: lastPush,
+        leadMs: LIVE_LEAD_MS,
+        staleMs: PUSH_STALE_MS
+      });
+      t0 = lw.t0;
+      t1 = lw.t1;
+    }
+    function xAt(t) {
+      if (isNaN(t) || t1 === t0) return padL;
+      var x = padL + ((W - padL - padR) * (t - t0)) / (t1 - t0);
+      if (x < padL) return padL;
+      if (x > W - padR) return W - padR;
+      return x;
+    }
+    var joins = 0,
+      leaves = 0,
+      errs = 0;
+    for (i = 0; i < evPts.length; i++) {
+      var t = parseTs(evPts[i].ts);
+      if (isNaN(t) || t < t0 - 5000 || t > t1 + 5000) continue;
+      var x = xAt(t);
+      var kind2 = evPts[i]._ev;
+      var col =
+        kind2 === "join"
+          ? "#5ad67d"
+          : kind2 === "leave"
+            ? "#f0a040"
+            : kind2 === "error"
+              ? "#e87a82"
+              : "#8ec8ff";
+      if (kind2 === "join") joins++;
+      else if (kind2 === "leave") leaves++;
+      else if (kind2 === "error") errs++;
+      ctx.save();
+      ctx.strokeStyle = col;
+      ctx.fillStyle = col;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x, padT + 4);
+      ctx.lineTo(x, H - padB - 4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(x, padT + 10, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    if ($("faultMeta")) {
+      $("faultMeta").textContent =
+        joins +
+        " join · " +
+        leaves +
+        " leave · " +
+        errs +
+        " error · " +
+        (base.length || 0) +
+        " xretry pts";
     }
   }
 
@@ -2995,21 +3359,41 @@
       renderEvents();
     } else if (msg.op === "procs") {
       if (body.ok === false || !Array.isArray(body.processes)) return;
-      state.procs = body.processes;
-      renderProcs();
-      status(
-        "procs " +
-          state.procs.length +
-          " · host " +
-          state.hostPts.length +
-          " pts · " +
-          state.wsStatus
-      );
+      if (applyProcSnapshot(body.processes)) {
+        renderProcs();
+        status(
+          "procs " +
+            state.procs.length +
+            " · host " +
+            state.hostPts.length +
+            " pts · " +
+            state.wsStatus
+        );
+      }
     } else if (msg.op === "proc_series") {
       if (body.ok === false || !Array.isArray(body.points)) return;
       var pid = body.pid != null ? String(body.pid) : null;
       if (!pid) return;
       state.procSeries[pid] = { points: body.points };
+      /* Patch the table row from the series tip so expanded rows stay live. */
+      if (body.points.length && state.procs && state.procs.length) {
+        var tip = body.points[body.points.length - 1];
+        var patched = false;
+        state.procs = state.procs.map(function (p) {
+          if (String(p.pid) !== pid) return p;
+          patched = true;
+          return Object.assign({}, p, {
+            cpu_pct:
+              tip.cpu_pct != null ? tip.cpu_pct : p.cpu_pct,
+            rss_kb: tip.rss_kb != null ? tip.rss_kb : p.rss_kb,
+            vsize_kb: tip.vsize_kb != null ? tip.vsize_kb : p.vsize_kb,
+            cpu_time_ms:
+              tip.cpu_time_ms != null ? tip.cpu_time_ms : p.cpu_time_ms,
+            threads: tip.threads != null ? tip.threads : p.threads
+          });
+        });
+        if (patched) renderProcs();
+      }
       if (state.expanded[pid]) {
         renderProcDetailCharts(pid);
       }

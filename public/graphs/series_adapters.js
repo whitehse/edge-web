@@ -404,9 +404,24 @@ export function createAdapterHub(opts) {
   /* Match server MUX_HOST_LIMIT_MAX + /host/ seriesOpts.limit (LiveFeed) */
   const LF =
     typeof window !== "undefined" && window.LiveFeed ? window.LiveFeed : null;
-  const HOST_LIMIT =
+  const HOST_LIMIT_BASE =
     (LF && LF.HOST_SERIES_LIMIT) || 120;
   const FEED_STALE_MS = (LF && LF.FEED_STALE_MS) || 15000;
+
+  /**
+   * Point budget for REST: short windows use dense 1 Hz (capped ~1200 for
+   * 10–15 min). Longer windows stay within server caps but request more than
+   * the old fixed 120 so 24h live is not a handful of dots.
+   */
+  function hostLimitForMinutes(mins) {
+    mins = mins > 0 ? mins : currentMinutes || 10;
+    if (mins <= 15) {
+      return Math.min(1200, Math.max(HOST_LIMIT_BASE, mins * 60 + 30));
+    }
+    if (mins <= 120) return 600;
+    if (mins <= 24 * 60) return 800;
+    return 1000;
+  }
 
   let lastRestError = "";
 
@@ -494,7 +509,7 @@ export function createAdapterHub(opts) {
     if (LF && typeof LF.mergeByTimestamp === "function") {
       return LF.mergeByTimestamp(prev, next, lookbackMs, {
         parseTs: parseTs,
-        limit: HOST_LIMIT * 3
+        limit: hostLimitForMinutes(currentMinutes) * 3
       });
     }
     /* Inline fallback if live_feed.js not on the page */
@@ -526,7 +541,7 @@ export function createAdapterHub(opts) {
       if (t < cutoff) continue;
       out.push(byT[keys[i]]);
     }
-    const cap = HOST_LIMIT * 3;
+    const cap = hostLimitForMinutes(currentMinutes) * 3;
     if (out.length > cap) return out.slice(out.length - cap);
     return out;
   }
@@ -687,7 +702,8 @@ export function createAdapterHub(opts) {
     const body = {
       minutes: currentMinutes,
       hours: Math.max(1, Math.ceil(currentMinutes / 60)),
-      limit: HOST_LIMIT
+      /* WS frame budget is smaller; dense history comes from REST merge. */
+      limit: Math.min(120, hostLimitForMinutes(currentMinutes))
     };
     if (currentRouter) body.router_id = currentRouter;
     return body;
@@ -744,11 +760,12 @@ export function createAdapterHub(opts) {
   async function restHost(routerId, minutes) {
     const rid = routerId != null ? routerId : currentRouter;
     const mins = minutes || currentMinutes;
+    const lim = hostLimitForMinutes(mins);
     const q =
       "/api/v1/cpe/host?minutes=" +
       encodeURIComponent(mins) +
       "&limit=" +
-      encodeURIComponent(HOST_LIMIT) +
+      encodeURIComponent(lim) +
       (rid ? "&router_id=" + encodeURIComponent(rid) : "");
     const r = await fetchJson(q, { credentials: "same-origin" });
     if (!r.ok) {
@@ -772,11 +789,12 @@ export function createAdapterHub(opts) {
   async function restWifi(routerId, minutes) {
     const rid = routerId != null ? routerId : currentRouter;
     const mins = minutes || currentMinutes;
+    const lim = hostLimitForMinutes(mins);
     const q =
       "/api/v1/cpe/wifi?minutes=" +
       encodeURIComponent(mins) +
       "&limit=" +
-      encodeURIComponent(HOST_LIMIT) +
+      encodeURIComponent(lim) +
       (rid ? "&router_id=" + encodeURIComponent(rid) : "");
     const r = await fetchJson(q, { credentials: "same-origin" });
     if (!r.ok) {

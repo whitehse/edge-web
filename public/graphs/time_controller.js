@@ -48,16 +48,31 @@ export function createTimeController(opts) {
     const now = Date.now();
     let end = t1;
     if (live) {
-      if (feedAgeMs > FEED_STALE_MS && dataEndMs > 0) {
+      if (dataEndMs > 0 && feedAgeMs > FEED_STALE_MS) {
         /* Feed stalled — pin to last sample so the chart doesn't empty. */
         end = dataEndMs + LIVE_LEAD_MS;
-      } else {
-        /* Fresh feed: scroll with wall clock, cap lead past last sample. */
+      } else if (dataEndMs > 0) {
+        /*
+         * Fresh feed: wall clock, but never lead the latest sample by more
+         * than LIVE_LEAD_MS. Critical on first paint: without dataEndMs the
+         * strip sits on bare wall-clock and any residual clock skew empties
+         * the plot; once samples arrive, pin the pen to the data edge.
+         */
         end = now;
-        if (dataEndMs > 0) {
-          const leadCap = dataEndMs + LIVE_LEAD_MS;
-          if (end > leadCap) end = leadCap;
+        const leadCap = dataEndMs + LIVE_LEAD_MS;
+        if (end > leadCap) end = leadCap;
+        /*
+         * If the newest sample is still behind wall clock by more than the
+         * window (e.g. sparse REST, or lag after reconnect), keep the pen
+         * near data so the strip is not empty history to the left of t0.
+         * Cap how far we drag: do not jump more than one window behind.
+         */
+        if (dataEndMs < end - durationMs * 0.9) {
+          end = dataEndMs + LIVE_LEAD_MS;
         }
+      } else {
+        /* No samples yet — wall clock; first series will set dataEnd. */
+        end = now;
       }
       t1 = end;
     }

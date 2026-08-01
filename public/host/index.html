@@ -158,7 +158,7 @@
           <p class="host-axis-hint">
             Firmware TX retry % and underruns from QDF dp_wifistats (1&nbsp;Hz).
             xretry &gt;2–3% sustained often means RF collisions, weak clients, or interference.
-            PPDU rate shows airtime activity.
+            PPDU rate shows airtime activity. Right axis: FW RSSI when present.
           </p>
         </div>
         <span class="hint" id="wifiFwMeta">—</span>
@@ -168,7 +168,27 @@
         <span class="leg leg-xretry">TX xretry %</span>
         <span class="leg leg-underrun">underrun Δ / s</span>
         <span class="leg leg-ppdu">PPDU ok / s (scaled)</span>
+        <span class="leg leg-fw-rssi">FW RSSI (dBm)</span>
         <span class="leg leg-warn">xretry 3% caution</span>
+      </div>
+    </section>
+    <section class="card host-chart-card host-chart-wide">
+      <div class="host-panel-head">
+        <div>
+          <h2>Fault timeline</h2>
+          <p class="host-axis-hint">
+            Join / leave / agent errors as markers over radio xretry % (same window).
+            Spikes in xretry with leave bursts often mean RF stress or sticky clients.
+          </p>
+        </div>
+        <span class="hint" id="faultMeta">—</span>
+      </div>
+      <canvas id="faultChart" width="900" height="200" data-h="200" aria-label="Fault timeline chart"></canvas>
+      <div class="host-legend">
+        <span class="leg leg-xretry">xretry %</span>
+        <span class="leg leg-join">join</span>
+        <span class="leg leg-leave">leave</span>
+        <span class="leg leg-err">error</span>
       </div>
     </section>
   </div>
@@ -180,10 +200,11 @@
         <p class="host-axis-hint">
           Live Wi‑Fi associations (1&nbsp;Hz into ClickHouse).
           <strong>Click a client</strong> for coverage history (RSSI, link rate,
-          actual throughput) — ideal while walking rooms with a test phone.
+          actual throughput, TX retries) — ideal while walking rooms with a test phone.
           Link TX/RX are PHY rates (capability-sanitized for QCA 10× inflate).
-          Thrput is real byte-counter bandwidth. Chain RSSI is per RF antenna.
-          <strong>Status</strong> flags idle (inactive), stuck PTK, MIC fails, partial auth.
+          Thrput is real byte-counter bandwidth. <strong>Eff</strong> is thr÷PHY
+          (low + high PHY = airtime waste). <strong>Status</strong> flags idle,
+          stuck PTK, MIC fails, retry storms, partial auth.
         </p>
       </div>
       <span class="hint" id="clientsMeta">—</span>
@@ -202,24 +223,27 @@
             <th title="PHY link rate (TX to client)">Link TX</th>
             <th title="PHY link rate (RX from client)">Link RX</th>
             <th title="Actual throughput from byte counters">Thrput</th>
-            <th title="Association / security fault badges">Status</th>
+            <th title="Airtime efficiency: actual thr / PHY rate">Eff</th>
+            <th title="Association / security / retry fault badges">Status</th>
             <th>Seen</th>
           </tr>
         </thead>
         <tbody>
-          <tr><td colspan="11" class="hint">Waiting for station samples…</td></tr>
+          <tr><td colspan="12" class="hint">Waiting for station samples…</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
-  <section class="card host-proc-card">
+  <!-- Processes panel disabled (cpe_agent proc_stats off to save CPE CPU).
+       Re-enable with proc_stats.enabled: true and remove hidden below. -->
+  <section class="card host-proc-card" id="hostProcCard" hidden>
     <div class="host-panel-head">
       <h2>Processes</h2>
       <span class="hint" id="procMeta">—</span>
     </div>
     <p class="hint host-proc-hint">
-      High CPU / memory rows are highlighted. Click a row for history · table keeps your scroll while live data updates.
+      Full process table from the CPE (all PIDs). High CPU / memory rows are highlighted. Click a row for history · table keeps your scroll while live data updates.
     </p>
     <div class="table-wrap host-proc-wrap" id="procScroll">
       <table class="data" id="procTable">

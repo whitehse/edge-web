@@ -15,13 +15,22 @@ export function parseTs(ts) {
     if (!isFinite(n)) return NaN;
     return n > 0 && n < 1e12 ? n * 1000 : n;
   }
-  var t = Date.parse(s);
-  if (!isNaN(t)) return t;
-  /* ClickHouse DateTime: "YYYY-MM-DD HH:mm:ss" (no T / zone) */
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
-    t = Date.parse(s.replace(" ", "T") + "Z");
-    if (isNaN(t)) t = Date.parse(s.replace(" ", "T"));
+  /*
+   * ClickHouse DateTime / DateTime64 text is UTC without a zone:
+   * "YYYY-MM-DD HH:mm:ss[.ms]". Prefer …T…Z **before** bare Date.parse —
+   * engines treat the space form as *local*, which shifts graph points
+   * hours off the live strip (empty /graphs/ until you pan into the skew).
+   * Same fix as /host/ host.js parseTs.
+   */
+  if (
+    /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(s) &&
+    !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)
+  ) {
+    var iso = s.indexOf("T") >= 0 ? s : s.replace(" ", "T");
+    var tCh = Date.parse(iso + "Z");
+    if (!isNaN(tCh)) return tCh;
   }
+  var t = Date.parse(s);
   return isNaN(t) ? NaN : t;
 }
 

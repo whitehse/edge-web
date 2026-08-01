@@ -698,6 +698,20 @@ async function boot() {
         time.setDataEnd(0, feedAge);
       }
       if (typeof hub.ensureFeed === "function") hub.ensureFeed();
+    } else {
+      /*
+       * Also refresh dataEnd on every live tick when we already have points —
+       * first REST after open can land between 250 ms polls and leave the
+       * strip on wall-clock for a full quarter second (looks empty).
+       */
+      const endFast = hub.latestDataEnd();
+      if (endFast > 0) {
+        const pushFast = hub.latestPush();
+        time.setDataEnd(
+          endFast,
+          pushFast > 0 ? Date.now() - pushFast : 0
+        );
+      }
     }
 
     if (time.get().live) {

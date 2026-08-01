@@ -33,11 +33,19 @@
       var n = Number(s);
       return n > 0 && n < 1e12 ? n * 1000 : n;
     }
-    var t = Date.parse(s);
-    if (!isNaN(t)) return t;
-    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
-      t = Date.parse(s.replace(" ", "T") + "Z");
+    /*
+     * ClickHouse DateTime is UTC without zone. Force …T…Z before bare
+     * Date.parse (space form is local in most browsers — empty live charts).
+     */
+    if (
+      /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(s) &&
+      !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)
+    ) {
+      var iso = s.indexOf("T") >= 0 ? s : s.replace(" ", "T");
+      var tCh = Date.parse(iso + "Z");
+      if (!isNaN(tCh)) return tCh;
     }
+    var t = Date.parse(s);
     return isNaN(t) ? NaN : t;
   }
 

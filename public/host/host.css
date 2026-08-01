@@ -280,6 +280,22 @@
   background: color-mix(in srgb, #e070f0 22%, transparent);
   color: #e070f0;
 }
+#clientsTable .sta-retry {
+  background: color-mix(in srgb, #e87a82 22%, transparent);
+  color: #e87a82;
+}
+#clientsTable .sta-retry-soft {
+  background: color-mix(in srgb, #f0a040 18%, transparent);
+  color: #f0a040;
+}
+#clientsTable .sta-eff {
+  background: color-mix(in srgb, #6b8cff 20%, transparent);
+  color: #8ec8ff;
+}
+#clientsTable .eff-low {
+  color: var(--warn, #f0a040);
+  font-weight: 600;
+}
 #clientsTable tbody tr.has-status {
   box-shadow: inset 3px 0 0 color-mix(in srgb, var(--warn, #f0a040) 70%, transparent);
 }
@@ -291,6 +307,18 @@
 }
 .leg-ppdu::before {
   background: #6b8cff;
+}
+.leg-fw-rssi::before {
+  background: #5ad67d;
+}
+.leg-join::before {
+  background: #5ad67d;
+}
+.leg-leave::before {
+  background: #f0a040;
+}
+.leg-err::before {
+  background: #e87a82;
 }
 #clientsTable .rate-cell {
   font-family: var(--font-mono);
