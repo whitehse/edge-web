@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CPE configuration · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="cpe-config.css"/>
+</head>
+<body class="app-shell" data-nav="cpe-config" data-title="CPE configuration"
+      data-subtitle="Load, edit, and safely apply router settings over TR‑369"
+      data-wide="1">
+  <header class="hidden">
+    <h1>CPE configuration</h1>
+  </header>
+
+  <p class="hint cfg-lead">
+    Help-desk view for customer premises equipment. Changes use a
+    <strong>safe apply</strong> (like Juniper commit confirmed): if the router
+    loses contact with the office after you apply, settings are
+    <strong>automatically undone</strong>. Always confirm once Wi‑Fi and management
+    still work.
+  </p>
+
+  <!-- Toolbar -->
+  <section class="card cfg-toolbar">
+    <div class="row cfg-toolbar-row">
+      <label>Router
+        <input id="filterRouter" type="text" placeholder="router_id" autocomplete="off"
+               style="min-width:11rem"/>
+      </label>
+      <button type="button" id="btnLoad" class="btn">Load configuration</button>
+      <button type="button" id="btnReload" class="btn secondary ghost" disabled>Refresh</button>
+      <a id="openHostLink" class="btn secondary ghost" href="/host/">Live host &amp; Wi‑Fi</a>
+      <a id="openShellLink" class="btn secondary ghost" href="/terminal/">Shell</a>
+      <span class="hint" id="cfgStatus">Select a router and load configuration</span>
+    </div>
+    <div class="cfg-device-strip" id="deviceStrip" hidden>
+      <span id="devSerial" class="cfg-pill">—</span>
+      <span id="devModel" class="cfg-pill muted">—</span>
+      <span id="devSw" class="cfg-pill muted">—</span>
+      <span id="devCommit" class="cfg-pill" data-st="idle">commit: idle</span>
+    </div>
+  </section>
+
+  <!-- Confirm banner -->
+  <section class="card cfg-banner" id="confirmBanner" hidden>
+    <div class="cfg-banner-inner">
+      <div>
+        <strong id="confirmTitle">Changes are live — confirm or they undo</strong>
+        <p class="hint" id="confirmDetail">
+          Keep this page open. If the router cannot reach the office, settings
+          will roll back automatically.
+        </p>
+      </div>
+      <div class="cfg-banner-actions">
+        <span class="cfg-countdown" id="confirmCountdown">—</span>
+        <button type="button" id="btnConfirm" class="btn">Keep changes</button>
+        <button type="button" id="btnRollback" class="btn secondary">Undo now</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tabs + panels -->
+  <section class="card cfg-main" id="cfgMain" hidden>
+    <nav class="cfg-tabs" role="tablist" aria-label="Configuration sections">
+      <button type="button" class="cfg-tab active" data-tab="wifi" role="tab">Wi‑Fi</button>
+      <button type="button" class="cfg-tab" data-tab="firewall" role="tab">Firewall</button>
+      <button type="button" class="cfg-tab" data-tab="access" role="tab">Access &amp; users</button>
+      <button type="button" class="cfg-tab" data-tab="network" role="tab">Network</button>
+      <button type="button" class="cfg-tab" data-tab="advanced" role="tab">Advanced</button>
+    </nav>
+
+    <!-- Wi‑Fi -->
+    <div class="cfg-panel active" id="panel-wifi" role="tabpanel">
+      <p class="hint">
+        Network name (SSID), password, and on/off for each wireless network.
+        Leave password blank to keep the current one.
+      </p>
+      <div id="wifiList" class="cfg-wifi-list"></div>
+      <p class="hint" id="wifiEmpty" hidden>No wireless networks found on this router.</p>
+    </div>
+
+    <!-- Firewall -->
+    <div class="cfg-panel" id="panel-firewall" role="tabpanel" hidden>
+      <p class="hint">
+        Named firewall rules. Prefer enabling/disabling rules rather than
+        deleting them. Target ACCEPT allows traffic; DROP/REJECT blocks it.
+      </p>
+      <div class="table-wrap">
+        <table class="data" id="fwTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Source</th>
+              <th>Dest</th>
+              <th>Port</th>
+              <th>Action</th>
+              <th>Enabled</th>
+            </tr>
+          </thead>
+          <tbody id="fwBody">
+            <tr><td colspan="6" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Access -->
+    <div class="cfg-panel" id="panel-access" role="tabpanel" hidden>
+      <p class="hint">
+        Hostname and remote access settings. Changing these can affect how
+        staff connect — use the safe apply flow.
+      </p>
+      <div class="cfg-form-grid">
+        <label>Router hostname
+          <input id="accHostname" type="text" autocomplete="off"/>
+        </label>
+        <label>SSH password login
+          <select id="accPassAuth">
+            <option value="">— leave unchanged —</option>
+            <option value="on">Allowed</option>
+            <option value="off">Disabled (keys only)</option>
+          </select>
+        </label>
+        <label>SSH root password login
+          <select id="accRootPassAuth">
+            <option value="">— leave unchanged —</option>
+            <option value="on">Allowed</option>
+            <option value="off">Disabled</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <!-- Network -->
+    <div class="cfg-panel" id="panel-network" role="tabpanel" hidden>
+      <p class="hint cfg-warn">
+        LAN address changes can break management. Prefer Wi‑Fi edits unless
+        you have a technician on site.
+      </p>
+      <div class="cfg-form-grid">
+        <label>LAN IPv4 address
+          <input id="netLanIp" type="text" autocomplete="off" placeholder="192.168.1.1"/>
+        </label>
+        <label>LAN netmask
+          <input id="netLanMask" type="text" autocomplete="off" placeholder="255.255.255.0"/>
+        </label>
+      </div>
+      <details class="cfg-raw-pkg">
+        <summary class="hint">View network package (read-only preview)</summary>
+        <pre id="netPkgPre" class="cfg-pre">—</pre>
+      </details>
+    </div>
+
+    <!-- Advanced -->
+    <div class="cfg-panel" id="panel-advanced" role="tabpanel" hidden>
+      <p class="hint">
+        Full OpenWrt configuration packages. For specialists only — prefer
+        the other tabs. Edits here are not form-based.
+      </p>
+      <div id="advPackages" class="cfg-uci-list"></div>
+    </div>
+
+    <!-- Sticky change bar -->
+    <div class="cfg-changebar" id="changeBar">
+      <div>
+        <strong id="changeSummary">No edits yet</strong>
+        <p class="hint" id="changeHint">Edit a field above, then review and apply.</p>
+      </div>
+      <div class="cfg-changebar-actions">
+        <button type="button" id="btnDiscard" class="btn secondary ghost" disabled>Discard edits</button>
+        <button type="button" id="btnReview" class="btn" disabled>Review &amp; apply…</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Review modal -->
+  <div class="cfg-modal" id="reviewModal" hidden>
+    <div class="cfg-modal-card">
+      <h2>Review changes</h2>
+      <p class="hint">
+        These settings will be applied with a <strong>2‑minute safety window</strong>.
+        If the router drops offline or you do not press <em>Keep changes</em>,
+        everything reverts automatically.
+      </p>
+      <ul id="reviewList" class="cfg-review-list"></ul>
+      <label class="cfg-confirm-secs">Safety window
+        <select id="confirmSecs">
+          <option value="60">1 minute</option>
+          <option value="120" selected>2 minutes</option>
+          <option value="300">5 minutes</option>
+        </select>
+      </label>
+      <div class="row cfg-modal-actions">
+        <button type="button" id="btnReviewCancel" class="btn secondary ghost">Cancel</button>
+        <button type="button" id="btnApplyConfirmed" class="btn">Apply safely</button>
+      </div>
+      <p class="hint" id="reviewStatus"></p>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+  <script src="/context.js"></script>
+  <script src="/shell.js"></script>
+  <script src="cpe-config.js"></script>
+</body>
+</html>

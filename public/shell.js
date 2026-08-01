@@ -15,6 +15,7 @@
     { section: "Telemetry" },
     { id: "graphs", href: "/graphs/", label: "Graphs", ico: "▤" },
     { id: "host", href: "/host/", label: "CPE host & Wi‑Fi", ico: "▣" },
+    { id: "cpe-config", href: "/cpe-config/", label: "CPE configuration", ico: "✎" },
     { id: "flows", href: "/flows/", label: "CPE flows", ico: "⇄" },
     { id: "terminal", href: "/terminal/", label: "CPE shell", ico: "⌘" },
     { section: "Access gear" },
@@ -49,6 +50,7 @@
     if (p.indexOf("/graphs") === 0) return "graphs";
     if (p.indexOf("/flows") === 0) return "flows";
     if (p.indexOf("/host") === 0) return "host";
+    if (p.indexOf("/cpe-config") === 0) return "cpe-config";
     if (p.indexOf("/terminal") === 0) return "terminal";
     if (p.indexOf("/explain") === 0) return "explain";
     if (p.indexOf("/ca") === 0) return "ca";

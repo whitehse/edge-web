@@ -53,6 +53,13 @@
       rose: true
     },
     {
+      href: "/cpe-config/",
+      title: "CPE configuration",
+      desc: "Wi‑Fi, firewall, access — safe apply with auto-revert.",
+      ico: "✎",
+      rose: false
+    },
+    {
       href: "/terminal/",
       title: "CPE shell",
       desc: "Browser terminal on a call-home router (xterm.js).",

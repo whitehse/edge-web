@@ -3974,23 +3974,9 @@
           EdgeContext.setRouter($("filterRouter").value, { source: "user" });
         }
         subscribe();
-        fetchUspConfig();
       });
     }
-    if ($("btnUspCapture")) {
-      $("btnUspCapture").addEventListener("click", captureUspConfig);
-    }
-    if ($("btnUspRefresh")) {
-      $("btnUspRefresh").addEventListener("click", function () {
-        fetchUspConfig();
-      });
-    }
-    if ($("btnUspApply")) {
-      $("btnUspApply").addEventListener("click", applyUciSet);
-    }
-    if ($("btnUspCommit")) {
-      $("btnUspCommit").addEventListener("click", commitUci);
-    }
+    /* USP config UI moved to /cpe-config/ */
     if (window.EdgeContext && EdgeContext.onChange) {
       EdgeContext.onChange(function (c) {
         applyContextToFilter(c);
@@ -4026,8 +4012,6 @@
     ensureAnimLoop();
     /* Auto-subscribe as soon as the page is open (and again on WS open). */
     subscribe();
-    /* Load last USP snapshot if any; capture is on-demand. */
-    fetchUspConfig();
   }
 
   function boot() {

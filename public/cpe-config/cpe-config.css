@@ -1,0 +1,321 @@
+/* CPE configuration SPA — help-desk focused */
+
+.cfg-lead {
+  margin: 0 0 0.85rem;
+  max-width: 52rem;
+  line-height: 1.45;
+}
+
+.cfg-toolbar-row {
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.cfg-device-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.cfg-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+}
+
+.cfg-pill.muted {
+  color: var(--muted);
+}
+
+.cfg-pill[data-st="pending_confirm"] {
+  color: #1a1a1a;
+  background: #e6b84d;
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.cfg-pill[data-st="reverted"],
+.cfg-pill[data-st="error"] {
+  color: #fff;
+  background: var(--bad);
+  border-color: transparent;
+}
+
+.cfg-pill[data-st="idle"],
+.cfg-pill[data-st="candidate"] {
+  color: var(--ok);
+}
+
+/* Confirm banner */
+.cfg-banner {
+  border: 1px solid color-mix(in srgb, var(--warn) 55%, var(--border));
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+}
+
+.cfg-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cfg-banner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.cfg-countdown {
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+/* Tabs */
+.cfg-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0 0 1rem;
+  border-bottom: 1px solid var(--border-soft);
+  padding-bottom: 0.35rem;
+}
+
+.cfg-tab {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 500;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+}
+
+.cfg-tab:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.cfg-tab.active {
+  color: var(--text);
+  background: var(--surface-2);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.cfg-panel {
+  min-height: 12rem;
+}
+
+.cfg-warn {
+  color: var(--warn);
+}
+
+.cfg-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.85rem 1.1rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.cfg-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.cfg-form-grid input,
+.cfg-form-grid select,
+.cfg-wifi-card input,
+.cfg-wifi-card select {
+  font: inherit;
+  color: var(--text);
+  background: var(--input-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.55rem;
+}
+
+/* Wi‑Fi cards */
+.cfg-wifi-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cfg-wifi-card {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  background: var(--surface-2);
+}
+
+.cfg-wifi-card h3 {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.cfg-wifi-card .cfg-band {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.cfg-wifi-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 0.65rem 0.9rem;
+}
+
+.cfg-wifi-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.cfg-dirty {
+  outline: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+/* Change bar */
+.cfg-changebar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-soft);
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--surface) 18%
+  );
+  padding-bottom: 0.25rem;
+}
+
+.cfg-changebar-actions {
+  display: flex;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+/* Modal */
+.cfg-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.cfg-modal[hidden] {
+  display: none !important;
+}
+
+.cfg-modal-card {
+  width: min(32rem, 100%);
+  max-height: min(85vh, 40rem);
+  overflow: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.15rem 1.25rem;
+}
+
+.cfg-modal-card h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
+
+.cfg-review-list {
+  margin: 0.75rem 0;
+  padding-left: 1.15rem;
+  font-size: 0.92rem;
+}
+
+.cfg-review-list li {
+  margin: 0.3rem 0;
+}
+
+.cfg-confirm-secs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0.75rem 0;
+}
+
+.cfg-modal-actions {
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Advanced packages */
+.cfg-uci-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.cfg-uci-list details {
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.55rem;
+  background: var(--surface-2);
+}
+
+.cfg-pre {
+  margin: 0.4rem 0 0;
+  padding: 0.55rem 0.65rem;
+  max-height: 16rem;
+  overflow: auto;
+  font-size: 0.72rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--input-bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+}
+
+#cfgStatus[data-st="ok"] { color: var(--ok); }
+#cfgStatus[data-st="pending"] { color: var(--warn); }
+#cfgStatus[data-st="error"] { color: var(--bad); }
+
+@media (max-width: 640px) {
+  .cfg-banner-inner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

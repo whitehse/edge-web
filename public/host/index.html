@@ -40,92 +40,11 @@
     </div>
   </section>
 
-  <section class="card" id="uspConfigCard">
-    <div class="host-panel-head">
-      <div>
-        <h2>CPE config (TR‑369 over SSH)</h2>
-        <p class="host-axis-hint">
-          Data-model-aware <code>Get</code> over Call Home subsystem
-          <code>edge-usp</code>: Device.DeviceInfo / Device.WiFi and the full
-          OpenWrt UCI database (<code>Device.X_ECOEC_OpenWrt.UCI.*</code>).
-          Requires online CPE with <code>edge-usp</code> open. Config updates
-          use the same channel via USP <code>Set</code> (Apply / Commit).
-        </p>
-      </div>
-      <span class="hint" id="uspCfgMeta">—</span>
-    </div>
-    <div class="row" style="gap:0.5rem;flex-wrap:wrap;margin-bottom:0.75rem;align-items:center">
-      <label class="hint">Profile
-        <select id="uspCfgProfile" title="What to fetch over TR-369">
-          <option value="host_wifi">Host + Wi‑Fi (Device:2)</option>
-          <option value="openwrt_uci">OpenWrt UCI database</option>
-          <option value="all" selected>All (Device:2 + UCI)</option>
-        </select>
-      </label>
-      <button type="button" id="btnUspCapture" class="btn">Fetch config</button>
-      <button type="button" id="btnUspRefresh" class="btn secondary ghost">Refresh</button>
-      <span class="hint" id="uspCfgStatus">idle</span>
-    </div>
-    <div class="host-usp-grid">
-      <div>
-        <h3 class="host-subh">Device info</h3>
-        <dl class="host-kv" id="uspDeviceInfo">
-          <dt class="hint">No capture yet</dt>
-        </dl>
-      </div>
-      <div>
-        <h3 class="host-subh">Radios</h3>
-        <div class="table-wrap">
-          <table class="host-table" id="uspRadioTable">
-            <thead>
-              <tr><th>#</th><th>Name</th><th>On</th><th>Band</th><th>Ch</th></tr>
-            </thead>
-            <tbody id="uspRadioBody">
-              <tr><td colspan="5" class="hint">—</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="host-usp-wide">
-        <h3 class="host-subh">SSIDs / BSSIDs</h3>
-        <div class="table-wrap">
-          <table class="host-table" id="uspSsidTable">
-            <thead>
-              <tr><th>#</th><th>SSID</th><th>BSSID</th><th>On</th><th>Radio</th></tr>
-            </thead>
-            <tbody id="uspSsidBody">
-              <tr><td colspan="5" class="hint">—</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <div class="host-usp-wide" id="uspUciPanel">
-        <h3 class="host-subh">OpenWrt UCI packages</h3>
-        <p class="hint" id="uspUciHint">Fetch with profile “OpenWrt UCI” or “All”.</p>
-        <div id="uspUciPackages" class="host-uci-list"></div>
-      </div>
-    </div>
-    <details class="host-usp-apply" id="uspApplyPanel">
-      <summary class="hint">Apply UCI change (Set groundwork)</summary>
-      <div class="row" style="gap:0.5rem;flex-wrap:wrap;margin-top:0.5rem;align-items:center">
-        <label class="hint">uci set
-          <input id="uspApplyValue" type="text" placeholder="wireless.radio0.channel=36"
-                 style="min-width:18rem" autocomplete="off"/>
-        </label>
-        <button type="button" id="btnUspApply" class="btn secondary">Apply</button>
-        <button type="button" id="btnUspCommit" class="btn secondary ghost">Commit</button>
-        <span class="hint" id="uspApplyStatus"></span>
-      </div>
-      <p class="hint" style="margin-top:0.35rem">
-        Sends <code>Device.X_ECOEC_OpenWrt.UCI.Apply</code> then optional
-        <code>Commit</code> over the same TR‑369 SSH channel.
-      </p>
-    </details>
-    <details class="host-usp-raw">
-      <summary class="hint">Raw USP params (last round)</summary>
-      <pre id="uspCfgRaw" class="host-pre">[]</pre>
-    </details>
-  </section>
+  <p class="hint" style="margin:0 0 0.75rem">
+    To view or change Wi‑Fi, firewall, and other router settings, open
+    <a href="/cpe-config/">CPE configuration</a>
+    (safe apply with auto-revert).
+  </p>
 
   <!-- At-a-glance health: high usage / problems surface here -->
   <section class="host-health" id="healthStrip" aria-label="Resource health summary">
