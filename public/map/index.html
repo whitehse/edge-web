@@ -144,6 +144,13 @@
       <canvas id="c"></canvas>
       <canvas id="labels"></canvas>
       <div id="path-list" class="glass-float glass-float--bottom-left" hidden aria-live="polite"></div>
+      <div
+        id="subscriber-popup"
+        class="subscriber-popup glass-panel"
+        hidden
+        role="dialog"
+        aria-label="Subscriber ONT details"
+      ></div>
     </div>
     <aside id="sidebar" class="glass-sidebar" aria-label="Map details">
       <button
@@ -194,6 +201,11 @@
         </div>
         <p id="basemap-config-status" class="glass-muted" style="margin:0.35rem 0 0;font-size:0.75rem"></p>
         <h3>Subscribers</h3>
+        <p class="glass-muted" style="font-size:0.8rem;margin:0.25rem 0">
+          Marker color: green connected · red lost light · orange lost power.
+          <strong>Click a marker</strong> for connection status, optical levels (dB),
+          error counts, ONT registration, and CPE info.
+        </p>
         <label class="glass-control-row" for="subscribers-enable" style="font-size:0.8rem">
           <input type="checkbox" id="subscribers-enable" checked />
           Show ONT markers
