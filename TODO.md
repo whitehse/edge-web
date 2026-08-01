@@ -18,8 +18,10 @@ Living checklist for the browser project and interaction redesign.
 - [x] Auth UX ADR (Home-only login · next= · open/proxy/lab modes)
 - [x] Map: live `map.dynamic` WS feed + inventory seed + focus highlight
 - [x] Inventory JSON API (`/inventory/locations.json` → catalog)
+- [x] Map: satellite basemap + Calix subscribers package (libwebmap ADR-028)
 - [ ] Optional: build step / module packaging ADR if the site outgrows static JS
 - [ ] Postgres-backed inventory endpoint (same JSON shape)
+- [ ] Map: ONT status from Postgres NOTIFY / FSAN join (edgehost)
 
 ## Contract follow-ups (need edgehost when wire changes)
 

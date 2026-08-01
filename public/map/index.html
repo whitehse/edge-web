@@ -158,6 +158,47 @@
         <div id="status">Waiting for session…</div>
         <p><strong>Controls</strong>: drag pan · wheel zoom · hover magnifier · click fiber for path-trace · Esc clears path</p>
         <p class="glass-muted">Data linked from libwebmap demo by <code>run-status-map.sh</code>. If tiles fail to load, re-run the script from the edgehost repo root.</p>
+        <h3>Basemap</h3>
+        <p class="glass-muted" style="margin:0.25rem 0;font-size:0.8rem">
+          Shortbread (local vector package) or Google Satellite (Map Tiles API).
+        </p>
+        <fieldset class="glass-control-row" style="border:0;margin:0.35rem 0;padding:0;display:flex;flex-direction:column;gap:0.25rem;font-size:0.85rem">
+          <label><input type="radio" name="basemap-choice" value="shortbread" checked /> Shortbread vector</label>
+          <label><input type="radio" name="basemap-choice" value="google_satellite" /> Google Satellite</label>
+          <label><input type="radio" name="basemap-choice" value="google_hybrid" /> Google + Shortbread</label>
+          <label><input type="radio" name="basemap-choice" value="esri_satellite" /> Esri imagery (lab)</label>
+        </fieldset>
+        <label class="glass-control-row" for="gmaps-api-key" style="flex-direction:column;align-items:stretch;gap:0.2rem;font-size:0.8rem">
+          <span>Google Maps API key</span>
+          <input type="password" id="gmaps-api-key" autocomplete="off" placeholder="AIza…" style="width:100%;box-sizing:border-box;font:inherit;padding:0.25rem 0.4rem;background:#0c1424;color:#e8eef7;border:1px solid #2a3d5c;border-radius:4px" />
+        </label>
+        <label class="glass-control-row" for="gmaps-remember-key" style="font-size:0.8rem">
+          <input type="checkbox" id="gmaps-remember-key" />
+          Remember key in this browser
+        </label>
+        <label class="glass-control-row" for="gmaps-layer-roadmap" style="font-size:0.8rem">
+          <input type="checkbox" id="gmaps-layer-roadmap" />
+          Google roads on satellite
+        </label>
+        <div class="glass-control-row" style="gap:0.5rem;font-size:0.8rem">
+          <label for="gmaps-region">Region
+            <input id="gmaps-region" value="US" size="3" style="width:3rem;margin-left:0.25rem;background:#0c1424;color:#e8eef7;border:1px solid #2a3d5c;border-radius:4px" />
+          </label>
+          <label for="gmaps-lang">Lang
+            <input id="gmaps-lang" value="en-US" size="6" style="width:4rem;margin-left:0.25rem;background:#0c1424;color:#e8eef7;border:1px solid #2a3d5c;border-radius:4px" />
+          </label>
+        </div>
+        <div class="glass-control-row" style="gap:0.5rem;margin-top:0.35rem">
+          <button type="button" id="basemap-apply" class="path-clear">Apply basemap</button>
+          <button type="button" id="basemap-save" class="path-clear">Save only</button>
+        </div>
+        <p id="basemap-config-status" class="glass-muted" style="margin:0.35rem 0 0;font-size:0.75rem"></p>
+        <h3>Subscribers</h3>
+        <label class="glass-control-row" for="subscribers-enable" style="font-size:0.8rem">
+          <input type="checkbox" id="subscribers-enable" checked />
+          Show ONT markers
+        </label>
+        <div id="subscriber-hud" class="glass-hud">—</div>
         <h3>Dynamic feed</h3>
         <p class="glass-muted" style="font-size:0.8rem;margin:0 0 0.35rem">
           Live <code>map.dynamic</code> via WebSocket

@@ -45,6 +45,7 @@ if [[ -d "$DEMO" ]]; then
   link_or_refresh "$DEMO/tiles_fiber" "$MAP_DIR/tiles_fiber"
   [[ -d "$DEMO/weather" ]] && link_or_refresh "$DEMO/weather" "$MAP_DIR/weather"
   [[ -d "$DEMO/dynamic" ]] && link_or_refresh "$DEMO/dynamic" "$MAP_DIR/dynamic"
+  [[ -d "$DEMO/subscribers" ]] && link_or_refresh "$DEMO/subscribers" "$MAP_DIR/subscribers"
   [[ -d "$DEMO/splice_diagrams" ]] && link_or_refresh "$DEMO/splice_diagrams" "$MAP_DIR/splice_diagrams"
 else
   echo "warning: libwebmap demo not found at $DEMO (set LIBWEBMAP_DEMO)"

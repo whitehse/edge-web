@@ -36,6 +36,74 @@ map.dynamic / feature/focus/selected
 (`class: focus`, status `degraded` for visibility). Changing location in the
 shell (or devices) re-PUTs the focus key; WS fans out to the open map.
 
+## Basemap: Shortbread vs Google Satellite
+
+The map sidebar **Basemap** panel (and `basemap_config.js`) selects:
+
+| Choice | What you see |
+|--------|----------------|
+| **Shortbread vector** | Local Oklahoma Shortbread `.wmap` package (no API key) |
+| **Google Satellite** | Google Map Tiles API orthophoto (API key required) |
+| **Google + Shortbread** | Aerial under vector roads + fiber |
+| **Esri imagery** | Lab fallback without a Google key |
+
+1. Enable **Map Tiles API** on a Google Cloud API key.
+2. Paste the key in the sidebar → **Apply basemap** (optional: remember in browser).
+3. Or use query: `?basemap=google_satellite` with key stored via the panel, or
+   one-shot `?gmaps_key=AIza…` (prefer not to bookmark keys).
+
+## Satellite basemap + Calix subscribers (libwebmap ADR-028)
+
+libwebmap supports aerial imagery and full-territory subscriber markers without
+stuffing every premise into `map.dynamic` (~1k key budget):
+
+| Query | Effect |
+|-------|--------|
+| `?basemap=shortbread` | Shortbread `.wmap` (default) |
+| `?basemap=google_satellite` | Google Satellite only |
+| `?basemap=google_hybrid` | Google under + Shortbread + fiber |
+| `?basemap=esri` | Esri World Imagery |
+| `?subscribers=0` | Hide Calix premise markers |
+| `?subscribers=./subscribers/sample_package.json` | Small fixture |
+
+Full package: `map/subscribers/package.json` (linked from libwebmap demo;
+build with `libwebmap/tools/calix_subscribers_package.py` from the anonymized
+Calix extract). Marker color = ONT state: **green** connected, **red**
+disconnected, **orange** dying gasp.
+
+### Live ONT status from edgehost (FSAN join)
+
+edgehost puts/updates:
+
+```text
+map.dynamic / feature/ont/{fsan}     # fsan lowercase in key (state rules)
+```
+
+with JSON like:
+
+```json
+{
+  "id": "CXNK00A1B2C3",
+  "class": "fiber_cpe",
+  "status": "ok",
+  "fsan": "CXNK00A1B2C3",
+  "ont_id": "1/1/3/12",
+  "shelf_id": "00:02:5d:…",
+  "source": "show-ont"
+}
+```
+
+| Source | When |
+|--------|------|
+| **show-ont** baseline | Each ONT with a FSAN after Call Home open |
+| **lab.v1 / notification** | ONT events with `<fsan>` (or vendor+serial), or FSAN looked up from prior `net.pon` |
+| **Postgres later** | `ont_status` NOTIFY → same key shape |
+
+libwebmap `subscriber_layer` matches `fsan` / key `feature/ont/{FSAN}` and
+recolors the premise marker. GPS stays in the static package.
+
+See libwebmap [satellite-subscribers guide](../../../libwebmap/docs/guides/satellite-subscribers.md).
+
 ## Context chrome
 
 Map top bar shows the active location/CPE label and deep-links to Graphs /
