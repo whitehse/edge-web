@@ -1185,8 +1185,10 @@ export function createAdapterHub(opts) {
           t === "flow.overlay" ||
           t === "flow.defects" ||
           t === "flow.stream" ||
-          t === "wifi.client"
+          t === "wifi.client" ||
+          t === "wifi.fw"
         ) {
+          /* REST-backed panels (not host/wifi mux merge) */
           refreshPanel(p);
         }
       });
