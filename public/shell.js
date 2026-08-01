@@ -183,8 +183,8 @@
       '<span class="app-brand-name">edgehost</span>' +
       '<span class="app-brand-tag">Network edge</span>' +
       "</span></a>" +
-      '<nav class="app-nav" aria-label="Primary">' +
-      buildNavHtml(active, { isAdmin: true }) +
+      '<nav class="app-nav" aria-label="Primary" id="shellNav">' +
+      buildNavHtml(active, { isAdmin: false }) +
       "</nav>" +
       '<div class="sidebar-foot">' +
       '<div class="sidebar-user">' +
@@ -416,7 +416,22 @@
     }
   }
 
-  function setAuthUi(ok, label, sub, roles) {
+  function rolesIndicateAdmin(rolesStr) {
+    if (!rolesStr) return false;
+    /* employee_admin role bit from /auth/me roles array or CSV */
+    return (
+      rolesStr.indexOf("employee_admin") >= 0 ||
+      rolesStr.indexOf("admin") >= 0
+    );
+  }
+
+  function rebuildNav(isAdmin) {
+    var nav = $("#shellNav");
+    if (!nav) return;
+    nav.innerHTML = buildNavHtml(activeId(), { isAdmin: !!isAdmin });
+  }
+
+  function setAuthUi(ok, label, sub, roles, isAdmin) {
     lastAuthOk = !!ok;
     var b = $("#authBadge");
     if (b) {
@@ -435,6 +450,9 @@
       av.textContent = letter;
     }
     document.body.classList.toggle("signed-out", !ok);
+    if (!isMemberPath()) {
+      rebuildNav(ok && (isAdmin || rolesIndicateAdmin(roles)));
+    }
     for (var i = 0; i < authListeners.length; i++) {
       try {
         authListeners[i](!!ok);
@@ -451,22 +469,29 @@
       if (r.ok) {
         var sub = "operator";
         var roles = "session";
+        var isAdmin = false;
         try {
           var j = JSON.parse(body);
           if (j.sub) sub = j.sub;
           if (j.roles) {
-            roles = Array.isArray(j.roles) ? j.roles.join(", ") : String(j.roles);
+            if (Array.isArray(j.roles)) {
+              roles = j.roles.join(", ");
+              isAdmin = j.roles.indexOf("employee_admin") >= 0;
+            } else {
+              roles = String(j.roles);
+              isAdmin = rolesIndicateAdmin(roles);
+            }
           }
         } catch (e) {
           /* plain text ok */
         }
-        setAuthUi(true, "signed in", sub, roles);
+        setAuthUi(true, "signed in", sub, roles, isAdmin);
         return true;
       }
     } catch (e) {
       /* offline */
     }
-    setAuthUi(false, "not logged in");
+    setAuthUi(false, "not logged in", null, null, false);
     return false;
   }
 

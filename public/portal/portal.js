@@ -64,6 +64,24 @@
       $("accountLine").textContent =
         "Signed in as " + (auth.account_id || auth.sub || "member");
     }
+    if ($("outagesOpen")) {
+      if (d && typeof d.outages_open === "number") {
+        $("outagesOpen").textContent = String(d.outages_open);
+        if ($("outagesHint")) {
+          $("outagesHint").textContent =
+            d.outages_open === 0
+              ? "No open notices"
+              : d.outages_open === 1
+                ? "1 notice — see Outages"
+                : d.outages_open + " notices — see Outages";
+        }
+      } else {
+        $("outagesOpen").textContent = "—";
+        if ($("outagesHint")) {
+          $("outagesHint").textContent = "Outages not offered";
+        }
+      }
+    }
   }
 
   async function boot() {
