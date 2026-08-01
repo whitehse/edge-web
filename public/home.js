@@ -74,6 +74,13 @@
       rose: false
     },
     {
+      href: "/ssh-keys/",
+      title: "SSH Keys",
+      desc: "Call Home inventory, host pins, generate/import.",
+      ico: "🔑",
+      rose: true
+    },
+    {
       href: "/documentation/",
       title: "Documentation",
       desc: "Lessons and operator references.",

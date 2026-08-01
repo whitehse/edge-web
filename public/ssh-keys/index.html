@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>SSH Keys · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell lab-wide" data-nav="ssh-keys" data-title="SSH Keys"
+      data-subtitle="E7 / CPE Call Home inventory, pins, and auth audit"
+      data-wide="1">
+  <header class="hidden">
+    <h1>SSH Keys</h1>
+    <span id="authBadge" class="badge muted">not logged in</span>
+  </header>
+  <p class="hint nav-links">
+    Public-key inventory for Call Home (not X.509 — see
+    <a href="/ca/">Certificate Authority</a>). Enable
+    <code>plugins.ssh_keys.enabled</code> on edgehost.
+  </p>
+
+  <section class="card">
+    <h2>Status</h2>
+    <div class="row">
+      <button type="button" id="btnStatus">Refresh</button>
+    </div>
+    <pre id="statusOut" class="compact">…</pre>
+  </section>
+
+  <section class="card">
+    <h2>Pending host pins (TOFU)</h2>
+    <p class="hint">
+      Unknown E7 shelf host keys land here disabled. Confirm to enable the pin;
+      reject deletes the pending row. Session fails closed until confirm.
+    </p>
+    <div class="row">
+      <button type="button" id="btnPending">Refresh pending</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data" id="pendingTable">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Fingerprint</th><th>Comment</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="pendingBody"></tbody>
+      </table>
+    </div>
+    <pre id="pendingOut" class="compact"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Inventory</h2>
+    <div class="row">
+      <label>Purpose
+        <select id="purposeFilter">
+          <option value="">all</option>
+          <option value="e7-client">e7-client</option>
+          <option value="e7-host-pin">e7-host-pin</option>
+          <option value="cpe-authorized">cpe-authorized</option>
+          <option value="cpe-host-pin">cpe-host-pin</option>
+          <option value="staff">staff</option>
+        </select>
+      </label>
+      <label>Enabled
+        <select id="enabledFilter">
+          <option value="">any</option>
+          <option value="true">true</option>
+          <option value="false">false</option>
+        </select>
+      </label>
+      <button type="button" id="btnList">Refresh</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data" id="keyTable">
+        <thead>
+          <tr>
+            <th>ID</th><th>Name</th><th>Purpose</th><th>Algo</th>
+            <th>Fingerprint</th><th>Enabled</th><th>Material</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="keyBody"></tbody>
+      </table>
+    </div>
+    <pre id="keyDetail" class="compact"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Generate key pair</h2>
+    <p class="hint">
+      Defaults: <strong>RSA</strong> for e7-client, <strong>ed25519</strong> for
+      cpe-authorized. Private key written under
+      <code>plugins.ssh_keys.private_key_dir</code> (never returned in JSON).
+    </p>
+    <label>Name <input id="genName" type="text" value="nms-e7-lab"/></label>
+    <label>Purpose
+      <select id="genPurpose">
+        <option value="e7-client">e7-client</option>
+        <option value="cpe-authorized">cpe-authorized</option>
+        <option value="e7-host-pin">e7-host-pin</option>
+      </select>
+    </label>
+    <label>Algorithm (optional override)
+      <select id="genAlgo">
+        <option value="">default for purpose</option>
+        <option value="rsa-sha2-256">rsa-sha2-256 (RSA 3072)</option>
+        <option value="ssh-ed25519">ssh-ed25519</option>
+      </select>
+    </label>
+    <div class="row">
+      <button type="button" id="btnGenerate">Generate</button>
+    </div>
+    <pre id="genOut" class="compact"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Import public key</h2>
+    <label>Name <input id="impName" type="text" placeholder="cpe-42 factory"/></label>
+    <label>Purpose
+      <select id="impPurpose">
+        <option value="cpe-authorized">cpe-authorized</option>
+        <option value="e7-client">e7-client</option>
+        <option value="e7-host-pin">e7-host-pin</option>
+        <option value="cpe-host-pin">cpe-host-pin</option>
+      </select>
+    </label>
+    <label>Public key line
+      <textarea id="impPub" rows="3" placeholder="ssh-ed25519 AAAA… comment"></textarea>
+    </label>
+    <label>Entity type
+      <select id="impEntityType">
+        <option value="">(none)</option>
+        <option value="cpe_router">cpe_router</option>
+        <option value="e7_shelf">e7_shelf</option>
+        <option value="global_e7_client">global_e7_client</option>
+      </select>
+    </label>
+    <label>Entity id <input id="impEntityId" type="text" placeholder="cpe-42 or MAC"/></label>
+    <label class="row">
+      <input id="impPwAllowed" type="checkbox" checked/>
+      password_allowed (CPE)
+    </label>
+    <div class="row">
+      <button type="button" id="btnImport">Import</button>
+    </div>
+    <pre id="impOut" class="compact"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Bindings</h2>
+    <label>Key id <input id="bindKeyId" type="number" min="1"/></label>
+    <div class="row">
+      <button type="button" id="btnBindList">List bindings</button>
+    </div>
+    <label>Entity type
+      <select id="bindEntityType">
+        <option value="cpe_router">cpe_router</option>
+        <option value="e7_shelf">e7_shelf</option>
+        <option value="global_e7_client">global_e7_client</option>
+      </select>
+    </label>
+    <label>Entity id <input id="bindEntityId" type="text"/></label>
+    <label>Priority <input id="bindPri" type="number" value="100"/></label>
+    <label class="row">
+      <input id="bindPw" type="checkbox" checked/> password_allowed
+    </label>
+    <div class="row">
+      <button type="button" id="btnBindAdd">Add / upsert binding</button>
+    </div>
+    <pre id="bindOut" class="compact"></pre>
+  </section>
+
+  <section class="card">
+    <h2>Auth events</h2>
+    <div class="row">
+      <label>Entity id <input id="evEntity" type="text" placeholder="optional"/></label>
+      <label>Path
+        <select id="evPath">
+          <option value="">any</option>
+          <option value="e7">e7</option>
+          <option value="cpe">cpe</option>
+        </select>
+      </label>
+      <button type="button" id="btnEvents">Refresh</button>
+    </div>
+    <pre id="eventsOut" class="compact"></pre>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/context_catalog.js"></script>
+  <script src="/context.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/ssh-keys/ssh-keys.js"></script>
+</body>
+</html>

@@ -23,6 +23,7 @@
     { section: "Services" },
     { id: "explain", href: "/explain/", label: "Fiber explain", ico: "◇" },
     { id: "ca", href: "/ca/", label: "Certificate Authority", ico: "🔐" },
+    { id: "ssh-keys", href: "/ssh-keys/", label: "SSH Keys", ico: "🔑" },
     { section: "Tools" },
     { id: "documentation", href: "/documentation/", label: "Documentation", ico: "☰" },
     { id: "lab", href: "/lab/", label: "Lab console", ico: "⚙" }
