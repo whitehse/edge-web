@@ -3503,6 +3503,463 @@
     }
   }
 
+  /* ── USP config capture (TR-369 over edge-usp) ───────────── */
+  var uspPollTimer = 0;
+  var uspCaptureBusy = false;
+  var uspLastModel = null;
+
+  function routerId() {
+    var el = $("filterRouter");
+    return el && el.value ? String(el.value).trim() : "";
+  }
+
+  function uspProfile() {
+    var el = $("uspCfgProfile");
+    return el && el.value ? String(el.value) : "all";
+  }
+
+  function setUspStatus(st, detail) {
+    var el = $("uspCfgStatus");
+    var meta = $("uspCfgMeta");
+    if (el) {
+      el.textContent = st + (detail ? " · " + detail : "");
+      el.setAttribute("data-st", st || "idle");
+    }
+    if (meta) {
+      meta.textContent = st === "ok" ? "captured" : st || "—";
+    }
+  }
+
+  function paramMap(params) {
+    var m = {};
+    var i;
+    if (!params) return m;
+    for (i = 0; i < params.length; i++) {
+      if (params[i] && params[i].path) {
+        m[params[i].path] = params[i];
+      }
+    }
+    return m;
+  }
+
+  function pval(m, path) {
+    var p = m[path];
+    if (!p) return "—";
+    if (p.err && p.err !== 0) return "—";
+    return p.value != null && p.value !== "" ? String(p.value) : "—";
+  }
+
+  function modelVal(model, section, key) {
+    if (!model || !model[section]) return null;
+    var v = model[section][key];
+    return v != null && v !== "" ? String(v) : null;
+  }
+
+  function renderUciPackages(model) {
+    var wrap = $("uspUciPackages");
+    var hint = $("uspUciHint");
+    var pkgs = model && model.openwrt_uci && model.openwrt_uci.packages;
+    var names = [];
+    var html = "";
+    var i;
+    var name;
+    var text;
+    var n;
+    if (!wrap) return;
+    if (pkgs && typeof pkgs === "object") {
+      for (name in pkgs) {
+        if (Object.prototype.hasOwnProperty.call(pkgs, name)) {
+          names.push(name);
+        }
+      }
+      names.sort();
+    }
+    n = names.length;
+    if (hint) {
+      hint.textContent =
+        n > 0
+          ? n +
+            " package" +
+            (n === 1 ? "" : "s") +
+            (model.openwrt_uci.package_count != null
+              ? " · count " + model.openwrt_uci.package_count
+              : "")
+          : "No UCI packages in last capture (try profile All / OpenWrt UCI).";
+    }
+    for (i = 0; i < names.length; i++) {
+      name = names[i];
+      text = pkgs[name] != null ? String(pkgs[name]) : "";
+      html +=
+        '<details class="host-uci-pkg">' +
+        "<summary><code>" +
+        esc(name) +
+        "</code> <span class=\"hint\">" +
+        text.length +
+        " B</span></summary>" +
+        '<pre class="host-pre host-uci-pre">' +
+        esc(text) +
+        "</pre></details>";
+    }
+    wrap.innerHTML = html;
+  }
+
+  function renderUspConfig(j) {
+    var m = paramMap(j && j.params);
+    var model = (j && j.model) || {};
+    var di = model.device_info || {};
+    var wifi = model.wifi || {};
+    var dl = $("uspDeviceInfo");
+    var keys = [
+      ["Serial", "SerialNumber", "Device.DeviceInfo.SerialNumber"],
+      ["Manufacturer", "Manufacturer", "Device.DeviceInfo.Manufacturer"],
+      ["Model", "ModelName", "Device.DeviceInfo.ModelName"],
+      ["Class", "ProductClass", "Device.DeviceInfo.ProductClass"],
+      ["Software", "SoftwareVersion", "Device.DeviceInfo.SoftwareVersion"],
+      ["Hostname", "X_ECOEC_Hostname", "Device.DeviceInfo.X_ECOEC_Hostname"],
+      ["Kernel", "X_ECOEC_Kernel", "Device.DeviceInfo.X_ECOEC_Kernel"],
+      ["UpTime (s)", "UpTime", "Device.DeviceInfo.UpTime"]
+    ];
+    var html = "";
+    var i;
+    var rb;
+    var sb;
+    var rows;
+    var radios;
+    var ssids;
+    var v;
+
+    uspLastModel = model;
+
+    if (dl) {
+      for (i = 0; i < keys.length; i++) {
+        v = di[keys[i][1]];
+        if (v == null || v === "") v = pval(m, keys[i][2]);
+        else v = String(v);
+        if (v === "") v = "—";
+        html +=
+          "<dt>" +
+          esc(keys[i][0]) +
+          "</dt><dd>" +
+          esc(v) +
+          "</dd>";
+      }
+      dl.innerHTML = html || '<dt class="hint">empty</dt>';
+    }
+
+    radios = wifi.radios || [];
+    rb = $("uspRadioBody");
+    if (rb) {
+      rows = "";
+      if (radios.length) {
+        for (i = 0; i < radios.length; i++) {
+          var r = radios[i] || {};
+          rows +=
+            "<tr><td>" +
+            esc(String(r.i != null ? r.i : i + 1)) +
+            "</td><td>" +
+            esc(r.Name || "—") +
+            "</td><td>" +
+            esc(r.Enable != null ? String(r.Enable) : "—") +
+            "</td><td>" +
+            esc(r.Band || "—") +
+            "</td><td>" +
+            esc(r.Channel != null ? String(r.Channel) : "—") +
+            "</td></tr>";
+        }
+      } else {
+        /* Fallback: flat params */
+        for (i = 1; i <= 4; i++) {
+          var pref = "Device.WiFi.Radio." + i + ".";
+          var name = pval(m, pref + "Name");
+          if (name === "—") continue;
+          rows +=
+            "<tr><td>" +
+            i +
+            "</td><td>" +
+            esc(name) +
+            "</td><td>" +
+            esc(pval(m, pref + "Enable")) +
+            "</td><td>" +
+            esc(pval(m, pref + "OperatingFrequencyBand")) +
+            "</td><td>" +
+            esc(pval(m, pref + "Channel")) +
+            "</td></tr>";
+        }
+      }
+      rb.innerHTML = rows || '<tr><td colspan="5" class="hint">—</td></tr>';
+    }
+
+    ssids = wifi.ssids || [];
+    sb = $("uspSsidBody");
+    if (sb) {
+      rows = "";
+      if (ssids.length) {
+        for (i = 0; i < ssids.length; i++) {
+          var s = ssids[i] || {};
+          rows +=
+            "<tr><td>" +
+            esc(String(s.i != null ? s.i : i + 1)) +
+            "</td><td>" +
+            esc(s.SSID || "—") +
+            "</td><td>" +
+            esc(s.BSSID || "—") +
+            "</td><td>" +
+            esc(s.Enable != null ? String(s.Enable) : "—") +
+            "</td><td>" +
+            esc(s.LowerLayers || "—") +
+            "</td></tr>";
+        }
+      } else {
+        for (i = 1; i <= 8; i++) {
+          var sp = "Device.WiFi.SSID." + i + ".";
+          var ssid = pval(m, sp + "SSID");
+          var bssid = pval(m, sp + "BSSID");
+          if (ssid === "—" && bssid === "—") continue;
+          rows +=
+            "<tr><td>" +
+            i +
+            "</td><td>" +
+            esc(ssid) +
+            "</td><td>" +
+            esc(bssid) +
+            "</td><td>" +
+            esc(pval(m, sp + "Enable")) +
+            "</td><td>" +
+            esc(pval(m, sp + "LowerLayers")) +
+            "</td></tr>";
+        }
+      }
+      sb.innerHTML = rows || '<tr><td colspan="5" class="hint">no SSIDs</td></tr>';
+    }
+
+    renderUciPackages(model);
+
+    if ($("uspCfgMeta") && j) {
+      var bits = [];
+      if (j.profile) bits.push(j.profile);
+      if (j.status === "ok") bits.push("ok");
+      if (model.openwrt_uci && model.openwrt_uci.package_count != null) {
+        bits.push(model.openwrt_uci.package_count + " UCI pkgs");
+      }
+      $("uspCfgMeta").textContent = bits.length ? bits.join(" · ") : "captured";
+    }
+
+    if ($("uspCfgRaw")) {
+      try {
+        $("uspCfgRaw").textContent = JSON.stringify(
+          {
+            profile: j && j.profile,
+            model: model,
+            params: (j && j.params) || []
+          },
+          null,
+          2
+        );
+      } catch (e) {
+        $("uspCfgRaw").textContent = "[]";
+      }
+    }
+  }
+
+  /**
+   * SPA fetch helper — matches app.js edgehostFetch shape
+   * { status, body, ok, headers }, not a raw Response.
+   */
+  function uspHttp(url, opts) {
+    if (typeof window.edgehostFetch === "function") {
+      return window.edgehostFetch(url, opts);
+    }
+    return fetch(url, Object.assign({ credentials: "same-origin" }, opts || {}))
+      .then(function (r) {
+        return r.text().then(function (body) {
+          return {
+            status: r.status,
+            body: body,
+            headers: r.headers,
+            ok: r.ok
+          };
+        });
+      });
+  }
+
+  function parseUspJson(r) {
+    var j = null;
+    try {
+      j = JSON.parse(r && r.body != null ? r.body : "");
+    } catch (e) {
+      j = { ok: false, status: "error", err: "bad json" };
+    }
+    if (!j || typeof j !== "object") {
+      j = { ok: false, status: "error", err: "bad json" };
+    }
+    j._http = r ? r.status : 0;
+    return j;
+  }
+
+  function fetchUspConfig() {
+    var rid = routerId();
+    if (!rid) {
+      setUspStatus("error", "set router_id");
+      return Promise.resolve(null);
+    }
+    var url =
+      "/api/v1/cpe/usp/config?router_id=" + encodeURIComponent(rid);
+    return uspHttp(url, { credentials: "same-origin" })
+      .then(function (r) {
+        return parseUspJson(r);
+      })
+      .then(function (j) {
+        if (!j) return null;
+        setUspStatus(j.status || "idle", j.err || j.error || "");
+        if (j.status === "ok" || (j.params && j.params.length)) {
+          renderUspConfig(j);
+        }
+        return j;
+      })
+      .catch(function (err) {
+        setUspStatus("error", String(err && err.message ? err.message : err));
+        return null;
+      });
+  }
+
+  function pollUspUntilDone(tries) {
+    /* Full UCI dump is multi-round; allow ~45s. */
+    tries = tries == null ? 180 : tries;
+    if (uspPollTimer) {
+      clearTimeout(uspPollTimer);
+      uspPollTimer = 0;
+    }
+    return fetchUspConfig().then(function (j) {
+      if (!j) {
+        uspCaptureBusy = false;
+        return;
+      }
+      if (j.status === "pending" && tries > 0) {
+        var ph = j.phase != null ? " phase " + j.phase : "";
+        setUspStatus("pending", "waiting USP…" + ph);
+        uspPollTimer = setTimeout(function () {
+          pollUspUntilDone(tries - 1);
+        }, 250);
+        return;
+      }
+      uspCaptureBusy = false;
+      if (j.status === "pending") {
+        setUspStatus("error", "timeout waiting GetResp");
+      }
+    });
+  }
+
+  function captureUspConfig() {
+    var rid = routerId();
+    var prof = uspProfile();
+    if (!rid) {
+      setUspStatus("error", "set router_id");
+      return;
+    }
+    if (uspCaptureBusy) return;
+    uspCaptureBusy = true;
+    setUspStatus("pending", "sending Get (" + prof + ")…");
+    var url =
+      "/api/v1/cpe/usp/config/capture?router_id=" +
+      encodeURIComponent(rid) +
+      "&profile=" +
+      encodeURIComponent(prof);
+    uspHttp(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ profile: prof })
+    })
+      .then(function (r) {
+        var j = parseUspJson(r);
+        if (r.status === 202 || (j && j.status === "pending")) {
+          setUspStatus("pending", "waiting USP (" + prof + ")…");
+          return pollUspUntilDone(180);
+        }
+        uspCaptureBusy = false;
+        setUspStatus(
+          "error",
+          (j && (j.error || j.err || j.hint)) || "HTTP " + r.status
+        );
+      })
+      .catch(function (err) {
+        uspCaptureBusy = false;
+        setUspStatus("error", String(err && err.message ? err.message : err));
+      });
+  }
+
+  function setApplyStatus(msg) {
+    var el = $("uspApplyStatus");
+    if (el) el.textContent = msg || "";
+  }
+
+  function uspSetParams(params) {
+    var rid = routerId();
+    if (!rid) {
+      setApplyStatus("set router_id");
+      return Promise.resolve(null);
+    }
+    if (uspCaptureBusy) {
+      setApplyStatus("busy");
+      return Promise.resolve(null);
+    }
+    uspCaptureBusy = true;
+    setApplyStatus("sending Set…");
+    var url =
+      "/api/v1/cpe/usp/config/set?router_id=" + encodeURIComponent(rid);
+    return uspHttp(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ params: params })
+    })
+      .then(function (r) {
+        var j = parseUspJson(r);
+        if (r.status === 202 || (j && j.status === "pending")) {
+          setApplyStatus("waiting SetResp…");
+          return pollUspUntilDone(40).then(function () {
+            setApplyStatus("done");
+            return j;
+          });
+        }
+        uspCaptureBusy = false;
+        setApplyStatus(
+          (j && (j.error || j.err || j.hint)) || "HTTP " + r.status
+        );
+        return null;
+      })
+      .catch(function (err) {
+        uspCaptureBusy = false;
+        setApplyStatus(String(err && err.message ? err.message : err));
+        return null;
+      });
+  }
+
+  function applyUciSet() {
+    var inp = $("uspApplyValue");
+    var val = inp && inp.value ? String(inp.value).trim() : "";
+    if (!val || val.indexOf("=") < 0) {
+      setApplyStatus("need pkg.sec.opt=val");
+      return;
+    }
+    uspSetParams([
+      { path: "Device.X_ECOEC_OpenWrt.UCI.Apply", value: val }
+    ]);
+  }
+
+  function commitUci() {
+    var inp = $("uspApplyValue");
+    var val = inp && inp.value ? String(inp.value).trim() : "";
+    var pkg = "";
+    /* If value looks like pkg.sec.opt=val, commit just that package. */
+    if (val && val.indexOf(".") > 0) {
+      pkg = val.split(".")[0];
+    }
+    uspSetParams([
+      { path: "Device.X_ECOEC_OpenWrt.UCI.Commit", value: pkg }
+    ]);
+  }
+
   function bootLive() {
     applyContextToFilter();
     if ($("filterRange")) {
@@ -3517,7 +3974,22 @@
           EdgeContext.setRouter($("filterRouter").value, { source: "user" });
         }
         subscribe();
+        fetchUspConfig();
       });
+    }
+    if ($("btnUspCapture")) {
+      $("btnUspCapture").addEventListener("click", captureUspConfig);
+    }
+    if ($("btnUspRefresh")) {
+      $("btnUspRefresh").addEventListener("click", function () {
+        fetchUspConfig();
+      });
+    }
+    if ($("btnUspApply")) {
+      $("btnUspApply").addEventListener("click", applyUciSet);
+    }
+    if ($("btnUspCommit")) {
+      $("btnUspCommit").addEventListener("click", commitUci);
     }
     if (window.EdgeContext && EdgeContext.onChange) {
       EdgeContext.onChange(function (c) {
@@ -3554,6 +4026,8 @@
     ensureAnimLoop();
     /* Auto-subscribe as soon as the page is open (and again on WS open). */
     subscribe();
+    /* Load last USP snapshot if any; capture is on-demand. */
+    fetchUspConfig();
   }
 
   function boot() {

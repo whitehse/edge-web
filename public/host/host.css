@@ -503,3 +503,78 @@
   gap: 0.35rem;
   font-size: 0.75rem;
 }
+
+/* ── USP host/Wi‑Fi config capture ──────────────────────── */
+.host-usp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.25rem;
+}
+.host-usp-grid .host-usp-wide {
+  grid-column: 1 / -1;
+}
+@media (max-width: 900px) {
+  .host-usp-grid { grid-template-columns: 1fr; }
+}
+.host-subh {
+  margin: 0 0 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+.host-kv {
+  display: grid;
+  grid-template-columns: minmax(7rem, 11rem) 1fr;
+  gap: 0.25rem 0.75rem;
+  margin: 0;
+  font-size: 0.88rem;
+}
+.host-kv dt {
+  color: var(--muted, #9a958c);
+  font-weight: 500;
+}
+.host-kv dd {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  word-break: break-all;
+}
+.host-usp-raw,
+.host-usp-apply {
+  margin-top: 0.85rem;
+}
+.host-uci-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+.host-uci-pkg summary {
+  cursor: pointer;
+  font-size: 0.88rem;
+  padding: 0.25rem 0;
+}
+.host-uci-pkg summary code {
+  font-weight: 600;
+}
+.host-uci-pre {
+  max-height: 18rem;
+  font-size: 0.72rem;
+}
+.host-pre {
+  margin: 0.4rem 0 0;
+  padding: 0.6rem 0.75rem;
+  max-height: 14rem;
+  overflow: auto;
+  font-size: 0.75rem;
+  background: var(--surface-2, rgba(0, 0, 0, 0.25));
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+#uspCfgStatus[data-st="ok"] { color: #5ad67d; }
+#uspCfgStatus[data-st="pending"] { color: #e0c040; }
+#uspCfgStatus[data-st="error"] { color: #e87a82; }
+#uspCfgProfile {
+  margin-left: 0.25rem;
+  min-width: 12rem;
+}
