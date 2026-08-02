@@ -39,13 +39,15 @@
     { id: "portal-status", href: "/portal/", label: "Status", ico: "◈" },
     { id: "portal-map", href: "/portal/map/", label: "Map", ico: "◎" },
     { id: "portal-service", href: "/portal/service/", label: "Details", ico: "⌂" },
-    { id: "portal-outages", href: "/portal/outages/", label: "Outages", ico: "⚠" },
-    { id: "portal-network", href: "/portal/network/", label: "Home network", ico: "📶" }
+    { id: "portal-outages", href: "/portal/outages/", label: "Outages", ico: "⚠", feature: "outages" },
+    { id: "portal-network", href: "/portal/network/", label: "Home network", ico: "📶", feature: "calix_cloud" },
+    { id: "portal-packages", href: "/portal/packages/", label: "Map packs", ico: "▤", feature: "customer_api" }
   ];
 
   var THEME_KEY = "edgehost-theme";
   var authListeners = [];
   var lastAuthOk = null;
+  var lastFeatures = null;
 
   function $(sel, root) {
     return (root || document).querySelector(sel);
@@ -73,6 +75,7 @@
     if (p.indexOf("/portal/service") === 0) return "portal-service";
     if (p.indexOf("/portal/outages") === 0) return "portal-outages";
     if (p.indexOf("/portal/network") === 0) return "portal-network";
+    if (p.indexOf("/portal/packages") === 0) return "portal-packages";
     if (p.indexOf("/portal") === 0) return "portal-status";
     if (p.indexOf("/outages") === 0) return "outages";
     if (p.indexOf("/wifi-audits") === 0) return "wifi-audits";
@@ -127,6 +130,13 @@
     return p.indexOf("/portal") === 0 || document.body.classList.contains("chrome-member");
   }
 
+  function featureOn(name) {
+    if (!name) return true;
+    if (!lastFeatures) return true; /* unknown: show until /auth/me loads */
+    if (lastFeatures[name] === false) return false;
+    return true;
+  }
+
   function buildNavHtml(active, opts) {
     var items = isMemberPath() ? MEMBER_NAV : NAV;
     var isAdmin = opts && opts.isAdmin;
@@ -138,6 +148,9 @@
         continue;
       }
       if (n.adminOnly && !isAdmin) {
+        continue;
+      }
+      if (n.feature && !featureOn(n.feature)) {
         continue;
       }
       var cls = "nav-item" + (n.id === active ? " active" : "");
@@ -431,6 +444,23 @@
     nav.innerHTML = buildNavHtml(activeId(), { isAdmin: !!isAdmin });
   }
 
+  function applyFeatures(feat) {
+    lastFeatures = feat || null;
+    /* Rebuild both member and operator nav when features arrive */
+    var nav = $("#shellNav");
+    if (nav) {
+      var isAdmin = false;
+      try {
+        var roleEl = $("#shellUserRole");
+        var rs = roleEl ? roleEl.textContent || "" : "";
+        isAdmin = rs.indexOf("employee_admin") >= 0;
+      } catch (e) { /* ignore */ }
+      nav.innerHTML = buildNavHtml(activeId(), {
+        isAdmin: isAdmin || !isMemberPath()
+      });
+    }
+  }
+
   function setAuthUi(ok, label, sub, roles, isAdmin) {
     lastAuthOk = !!ok;
     var b = $("#authBadge");
@@ -481,6 +511,9 @@
               roles = String(j.roles);
               isAdmin = rolesIndicateAdmin(roles);
             }
+          }
+          if (j.features) {
+            applyFeatures(j.features);
           }
         } catch (e) {
           /* plain text ok */

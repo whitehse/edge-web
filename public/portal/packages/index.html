@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>My service · map packs</title>
+  <link rel="stylesheet" href="/app.css"/>
+</head>
+<body class="app-shell chrome-member" data-nav="portal-packages" data-title="Map packs"
+      data-subtitle="Offline basemap packages for your area">
+
+  <section class="card">
+    <h2>Available basemaps</h2>
+    <p class="hint">
+      These are the region basemaps you may download for offline use in the member app.
+      Other package kinds are not listed (privacy / size).
+    </p>
+    <div id="list">Loading…</div>
+    <pre id="raw" class="compact hidden"></pre>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/shell.js"></script>
+  <script>
+    (async function () {
+      const me = await fetch("/auth/me", { credentials: "same-origin" });
+      if (!me.ok) { location.href = "/portal/"; return; }
+      if (window.EdgeShell && EdgeShell.refreshAuth) {
+        await EdgeShell.refreshAuth();
+      }
+      if (window.EdgeShell && EdgeShell.mount) {
+        try { EdgeShell.mount(); } catch (e) { /* ok */ }
+      }
+      const r = await fetch("/api/v1/me/packages", { credentials: "same-origin" });
+      const d = await r.json();
+      const el = document.getElementById("list");
+      if (!r.ok) {
+        el.textContent = d.error === "FEATURE_DISABLED"
+          ? "Customer API not enabled."
+          : ("Error " + r.status);
+        return;
+      }
+      const pkgs = d.packages || [];
+      if (!pkgs.length) {
+        el.innerHTML = "<p class=\"hint\">No basemap packages published yet.</p>";
+        return;
+      }
+      el.innerHTML = pkgs.map(function (p) {
+        const man = p.manifest || (p.path ? p.path + "manifest.json" : "#");
+        const path = p.path || "#";
+        return (
+          "<div class=\"stat-card\" style=\"margin-bottom:0.75rem\">" +
+          "<div class=\"label\">" + (p.kind || "basemap") + "</div>" +
+          "<div class=\"value\" style=\"font-size:1.1rem\">" + (p.id || "") + "</div>" +
+          "<div class=\"delta\">" + (p.tiles != null ? p.tiles + " tiles" : "") + "</div>" +
+          "<div class=\"row\" style=\"margin-top:0.5rem;gap:0.5rem\">" +
+          "<a class=\"btn secondary\" href=\"" + man + "\">Manifest</a>" +
+          "<a class=\"btn secondary\" href=\"" + path + "\">Package root</a>" +
+          "</div></div>"
+        );
+      }).join("");
+    })();
+  </script>
+</body>
+</html>
