@@ -55,7 +55,7 @@
     {
       href: "/cpe-config/",
       title: "CPE configuration",
-      desc: "Wi‑Fi, firewall, access — safe apply with auto-revert.",
+      desc: "Full OpenWrt config: Wi‑Fi, firewall, ALG, users, DHCP — safe apply.",
       ico: "✎",
       rose: false
     },

@@ -8,18 +8,17 @@
   <link rel="stylesheet" href="cpe-config.css"/>
 </head>
 <body class="app-shell" data-nav="cpe-config" data-title="CPE configuration"
-      data-subtitle="Load, edit, and safely apply router settings over TR‑369"
+      data-subtitle="Load, edit, and safely apply OpenWrt / prplOS settings over TR‑369"
       data-wide="1">
   <header class="hidden">
     <h1>CPE configuration</h1>
   </header>
 
   <p class="hint cfg-lead">
-    Help-desk view for customer premises equipment. Changes use a
-    <strong>safe apply</strong> (like Juniper commit confirmed): if the router
-    loses contact with the office after you apply, settings are
-    <strong>automatically undone</strong>. Always confirm once Wi‑Fi and management
-    still work.
+    Full OpenWrt / prplOS configuration via TR‑369 USP (<code>edge-usp</code>).
+    Changes use a <strong>safe apply</strong> (like Juniper commit confirmed): if the
+    router loses contact after you apply, settings are <strong>automatically undone</strong>.
+    Confirm once Wi‑Fi and management still work.
   </p>
 
   <!-- Toolbar -->
@@ -30,6 +29,7 @@
                style="min-width:11rem"/>
       </label>
       <button type="button" id="btnLoad" class="btn">Load configuration</button>
+      <button type="button" id="btnLoadAll" class="btn secondary ghost" title="Every /etc/config package (slower)">Load all packages</button>
       <button type="button" id="btnReload" class="btn secondary ghost" disabled>Refresh</button>
       <a id="openHostLink" class="btn secondary ghost" href="/host/">Live host &amp; Wi‑Fi</a>
       <a id="openShellLink" class="btn secondary ghost" href="/terminal/">Shell</a>
@@ -39,6 +39,7 @@
       <span id="devSerial" class="cfg-pill">—</span>
       <span id="devModel" class="cfg-pill muted">—</span>
       <span id="devSw" class="cfg-pill muted">—</span>
+      <span id="devPkgs" class="cfg-pill muted">packages: —</span>
       <span id="devCommit" class="cfg-pill" data-st="idle">commit: idle</span>
     </div>
   </section>
@@ -66,15 +67,16 @@
     <nav class="cfg-tabs" role="tablist" aria-label="Configuration sections">
       <button type="button" class="cfg-tab active" data-tab="wifi" role="tab">Wi‑Fi</button>
       <button type="button" class="cfg-tab" data-tab="firewall" role="tab">Firewall</button>
+      <button type="button" class="cfg-tab" data-tab="alg" role="tab">ALG / helpers</button>
       <button type="button" class="cfg-tab" data-tab="access" role="tab">Access &amp; users</button>
-      <button type="button" class="cfg-tab" data-tab="network" role="tab">Network</button>
-      <button type="button" class="cfg-tab" data-tab="advanced" role="tab">Advanced</button>
+      <button type="button" class="cfg-tab" data-tab="network" role="tab">Network &amp; DHCP</button>
+      <button type="button" class="cfg-tab" data-tab="advanced" role="tab">All packages</button>
     </nav>
 
     <!-- Wi‑Fi -->
     <div class="cfg-panel active" id="panel-wifi" role="tabpanel">
       <p class="hint">
-        Network name (SSID), password, and on/off for each wireless network.
+        SSID, password, encryption, and radio options for each wireless network.
         Leave password blank to keep the current one.
       </p>
       <div id="wifiList" class="cfg-wifi-list"></div>
@@ -84,81 +86,291 @@
     <!-- Firewall -->
     <div class="cfg-panel" id="panel-firewall" role="tabpanel" hidden>
       <p class="hint">
-        Named firewall rules. Prefer enabling/disabling rules rather than
-        deleting them. Target ACCEPT allows traffic; DROP/REJECT blocks it.
+        Zones, traffic rules, and port forwards (<code>/etc/config/firewall</code>).
+        Prefer editing or disabling rules rather than deleting vendor defaults.
       </p>
+
+      <h3 class="cfg-subh">Global defaults</h3>
+      <div class="cfg-form-grid" id="fwDefaultsForm"></div>
+
+      <h3 class="cfg-subh">Zones</h3>
       <div class="table-wrap">
-        <table class="data" id="fwTable">
+        <table class="data" id="fwZoneTable">
           <thead>
             <tr>
               <th>Name</th>
-              <th>Source</th>
+              <th>Input</th>
+              <th>Output</th>
+              <th>Forward</th>
+              <th>Masq</th>
+              <th>MTU fix</th>
+              <th>Networks</th>
+            </tr>
+          </thead>
+          <tbody id="fwZoneBody">
+            <tr><td colspan="7" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cfg-section-head">
+        <h3 class="cfg-subh">Traffic rules</h3>
+        <button type="button" id="btnFwAddRule" class="btn secondary ghost">+ Add rule</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data cfg-edit-table" id="fwTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Src</th>
               <th>Dest</th>
+              <th>Proto</th>
               <th>Port</th>
+              <th>Src IP</th>
+              <th>Dest IP</th>
               <th>Action</th>
-              <th>Enabled</th>
+              <th>On</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="fwBody">
-            <tr><td colspan="6" class="hint">—</td></tr>
+            <tr><td colspan="10" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cfg-section-head">
+        <h3 class="cfg-subh">Port forwards (redirect)</h3>
+        <button type="button" id="btnFwAddRedir" class="btn secondary ghost">+ Add forward</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data cfg-edit-table" id="fwRedirTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Src</th>
+              <th>Src port</th>
+              <th>Dest</th>
+              <th>Dest IP</th>
+              <th>Dest port</th>
+              <th>Proto</th>
+              <th>On</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="fwRedirBody">
+            <tr><td colspan="9" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="cfg-subh">Zone forwarding</h3>
+      <div class="table-wrap">
+        <table class="data" id="fwFwdTable">
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>To</th>
+              <th>Ref</th>
+            </tr>
+          </thead>
+          <tbody id="fwFwdBody">
+            <tr><td colspan="3" class="hint">—</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Access -->
+    <!-- ALG / helpers -->
+    <div class="cfg-panel" id="panel-alg" role="tabpanel" hidden>
+      <p class="hint">
+        Connection-tracking helpers (ALG) and related firewall controls.
+        Disabling helpers can break protocols that rewrite embedded addresses
+        (FTP, SIP, PPTP, etc.).
+      </p>
+      <h3 class="cfg-subh">Firewall defaults — ALG</h3>
+      <div class="cfg-form-grid" id="algDefaultsForm"></div>
+
+      <h3 class="cfg-subh">Per-zone helper options</h3>
+      <div class="table-wrap">
+        <table class="data" id="algZoneTable">
+          <thead>
+            <tr>
+              <th>Zone</th>
+              <th>auto_helper</th>
+              <th>helper (list)</th>
+            </tr>
+          </thead>
+          <tbody id="algZoneBody">
+            <tr><td colspan="3" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="cfg-subh">Explicit helper sections</h3>
+      <p class="hint" id="algHelperEmpty">No <code>config helper</code> sections in firewall package.</p>
+      <div id="algHelperList" class="cfg-card-list"></div>
+
+      <h3 class="cfg-subh">Related services</h3>
+      <div class="cfg-form-grid" id="algServicesForm"></div>
+    </div>
+
+    <!-- Access & users -->
     <div class="cfg-panel" id="panel-access" role="tabpanel" hidden>
       <p class="hint">
-        Hostname and remote access settings. Changing these can affect how
-        staff connect — use the safe apply flow.
+        Hostname, SSH (dropbear), and management users (rpcd / users package).
+        Changing SSH or user access can lock staff out — use safe apply.
       </p>
+
+      <h3 class="cfg-subh">System</h3>
       <div class="cfg-form-grid">
         <label>Router hostname
-          <input id="accHostname" type="text" autocomplete="off"/>
+          <input id="accHostname" type="text" autocomplete="off" data-k-id="accHostname"/>
         </label>
-        <label>SSH password login
-          <select id="accPassAuth">
+        <label>Timezone
+          <input id="accTimezone" type="text" autocomplete="off" placeholder="UTC" data-k-id="accTimezone"/>
+        </label>
+        <label>Zonename
+          <input id="accZonename" type="text" autocomplete="off" placeholder="UTC" data-k-id="accZonename"/>
+        </label>
+      </div>
+
+      <h3 class="cfg-subh">SSH (dropbear)</h3>
+      <div class="cfg-form-grid">
+        <label>Password login
+          <select id="accPassAuth" data-k-id="accPassAuth">
             <option value="">— leave unchanged —</option>
             <option value="on">Allowed</option>
             <option value="off">Disabled (keys only)</option>
           </select>
         </label>
-        <label>SSH root password login
-          <select id="accRootPassAuth">
+        <label>Root password login
+          <select id="accRootPassAuth" data-k-id="accRootPassAuth">
             <option value="">— leave unchanged —</option>
             <option value="on">Allowed</option>
             <option value="off">Disabled</option>
           </select>
         </label>
+        <label>SSH port
+          <input id="accSshPort" type="text" autocomplete="off" placeholder="22" data-k-id="accSshPort"/>
+        </label>
+        <label>Gateway ports
+          <select id="accGwPorts" data-k-id="accGwPorts">
+            <option value="">— leave unchanged —</option>
+            <option value="on">On</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+        <label>Interface bind
+          <input id="accSshIface" type="text" autocomplete="off" placeholder="(any)" data-k-id="accSshIface"/>
+        </label>
       </div>
+
+      <div class="cfg-section-head">
+        <h3 class="cfg-subh">Management users (rpcd login)</h3>
+        <button type="button" id="btnAddUser" class="btn secondary ghost">+ Add user</button>
+      </div>
+      <p class="hint">
+        LuCI / ubus RPC accounts. Password is stored as a crypt hash when set
+        (plaintext you enter is written as the UCI <code>password</code> option —
+        prefer setting a pre-hashed value from <code>uhttpd -m</code> when possible).
+      </p>
+      <div id="userList" class="cfg-card-list"></div>
+      <p class="hint" id="userEmpty" hidden>No rpcd login sections found.</p>
+
+      <h3 class="cfg-subh">System users package</h3>
+      <div id="sysUserList" class="cfg-card-list"></div>
+      <p class="hint" id="sysUserEmpty" hidden>No <code>users</code> package sections.</p>
     </div>
 
-    <!-- Network -->
+    <!-- Network & DHCP -->
     <div class="cfg-panel" id="panel-network" role="tabpanel" hidden>
       <p class="hint cfg-warn">
-        LAN address changes can break management. Prefer Wi‑Fi edits unless
-        you have a technician on site.
+        Address and DHCP changes can break management. Prefer Wi‑Fi edits unless
+        you have a technician on site or an alternate path.
       </p>
-      <div class="cfg-form-grid">
-        <label>LAN IPv4 address
-          <input id="netLanIp" type="text" autocomplete="off" placeholder="192.168.1.1"/>
-        </label>
-        <label>LAN netmask
-          <input id="netLanMask" type="text" autocomplete="off" placeholder="255.255.255.0"/>
-        </label>
+
+      <h3 class="cfg-subh">Interfaces</h3>
+      <div class="table-wrap">
+        <table class="data cfg-edit-table" id="netIfTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Proto</th>
+              <th>Device / ifname</th>
+              <th>IPv4</th>
+              <th>Netmask</th>
+              <th>Gateway</th>
+              <th>DNS</th>
+              <th>Disabled</th>
+            </tr>
+          </thead>
+          <tbody id="netIfBody">
+            <tr><td colspan="8" class="hint">—</td></tr>
+          </tbody>
+        </table>
       </div>
-      <details class="cfg-raw-pkg">
-        <summary class="hint">View network package (read-only preview)</summary>
-        <pre id="netPkgPre" class="cfg-pre">—</pre>
-      </details>
+
+      <h3 class="cfg-subh">DHCP pools</h3>
+      <div class="table-wrap">
+        <table class="data cfg-edit-table" id="dhcpPoolTable">
+          <thead>
+            <tr>
+              <th>Section</th>
+              <th>Interface</th>
+              <th>Start</th>
+              <th>Limit</th>
+              <th>Lease</th>
+              <th>Ignore</th>
+              <th>Force</th>
+            </tr>
+          </thead>
+          <tbody id="dhcpPoolBody">
+            <tr><td colspan="7" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cfg-section-head">
+        <h3 class="cfg-subh">Static leases</h3>
+        <button type="button" id="btnAddLease" class="btn secondary ghost">+ Add lease</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data cfg-edit-table" id="dhcpHostTable">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>MAC</th>
+              <th>IP</th>
+              <th>Hostid / DUID</th>
+              <th>On</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="dhcpHostBody">
+            <tr><td colspan="6" class="hint">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="cfg-subh">dnsmasq</h3>
+      <div class="cfg-form-grid" id="dnsmasqForm"></div>
     </div>
 
-    <!-- Advanced -->
+    <!-- All packages (advanced) -->
     <div class="cfg-panel" id="panel-advanced" role="tabpanel" hidden>
       <p class="hint">
-        Full OpenWrt configuration packages. For specialists only — prefer
-        the other tabs. Edits here are not form-based.
+        Every OpenWrt UCI package loaded from the router. Edit package text for
+        full control, or use the form tabs above for structured changes.
+        Package text replace uses <code>UCI.&lt;pkg&gt;.Text</code> and still goes through
+        safe apply.
       </p>
+      <div class="cfg-adv-toolbar">
+        <label class="cfg-filter">Filter packages
+          <input id="advFilter" type="search" placeholder="wireless, firewall…" autocomplete="off"/>
+        </label>
+        <span class="hint" id="advCount"></span>
+      </div>
       <div id="advPackages" class="cfg-uci-list"></div>
     </div>
 
@@ -177,10 +389,10 @@
 
   <!-- Review modal -->
   <div class="cfg-modal" id="reviewModal" hidden>
-    <div class="cfg-modal-card">
+    <div class="cfg-modal-card cfg-modal-wide">
       <h2>Review changes</h2>
       <p class="hint">
-        These settings will be applied with a <strong>2‑minute safety window</strong>.
+        These settings will be applied with a <strong>safety window</strong>.
         If the router drops offline or you do not press <em>Keep changes</em>,
         everything reverts automatically.
       </p>
@@ -190,6 +402,7 @@
           <option value="60">1 minute</option>
           <option value="120" selected>2 minutes</option>
           <option value="300">5 minutes</option>
+          <option value="600">10 minutes</option>
         </select>
       </label>
       <div class="row cfg-modal-actions">
