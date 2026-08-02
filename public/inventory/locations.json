@@ -17,7 +17,7 @@
         "id": "1/1/3/12",
         "model": "Calix GS4227E",
         "status": "online",
-        "serial": "CXNK00A1B2C3",
+        "serial": "CXNK01E13D9D",
         "shelf_mac": "00:02:5d:d9:21:47",
         "rx_dbm": -18.4,
         "vendor": "Calix"
@@ -33,8 +33,9 @@
       },
       "tap_id": "tap-north-ridge",
       "account_id": "A-10428",
-      "calix_subscriber_id": "CX2-SUB-A10428",
-      "calix_device_id": "CX2-RG-cpe-lab"
+      "calix_subscriber_id": "46691",
+      "calix_device_id": "CXNK01E13D9D",
+      "calix_account": "15499001"
     },
     {
       "id": "loc-elm-408",
