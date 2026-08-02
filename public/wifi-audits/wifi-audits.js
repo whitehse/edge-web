@@ -175,6 +175,36 @@
     headingArrow(ctx, w - 28, 28, 0, 14, "#94a3b8");
     ctx.fillText("N", w - 34, 10);
 
+    /* Metric scale bar (relative plan only) */
+    if (useRel) {
+      var plotW = w - pad * 2;
+      var mPerPx = du / plotW;
+      var nice = [1, 2, 5, 10, 20, 50];
+      var targetPx = 80;
+      var barM = nice[0];
+      for (var ni = 0; ni < nice.length; ni++) {
+        if (nice[ni] / mPerPx <= targetPx * 1.4) barM = nice[ni];
+      }
+      var barPx = barM / mPerPx;
+      if (barPx > 20 && barPx < plotW) {
+        var bx = pad;
+        var by = h - 14;
+        ctx.strokeStyle = "#e2e8f0";
+        ctx.fillStyle = "#e2e8f0";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + barPx, by);
+        ctx.moveTo(bx, by - 4);
+        ctx.lineTo(bx, by + 4);
+        ctx.moveTo(bx + barPx, by - 4);
+        ctx.lineTo(bx + barPx, by + 4);
+        ctx.stroke();
+        ctx.font = "10px system-ui,sans-serif";
+        ctx.fillText(barM + " m", bx + barPx / 2 - 8, by - 6);
+      }
+    }
+
     /* path polyline with soft glow */
     ctx.strokeStyle = "rgba(56,189,248,0.25)";
     ctx.lineWidth = 6;
@@ -273,10 +303,18 @@
     const items = (d && d.audits) || [];
     el.innerHTML = items.length
       ? items.map(function (a) {
+          var mode = a.coord_mode || "";
+          var badge =
+            mode === "relative"
+              ? " <span class=\"badge\">indoor/PDR</span>"
+              : mode
+                ? " <span class=\"badge\">" + mode + "</span>"
+                : "";
           return (
             "<div class=\"audit-row\" data-id=\"" + a.audit_id + "\">" +
             "<code>" + a.audit_id + "</code> · " + (a.account_id || "") +
             " · " + a.sample_count + " samples · " + (a.router_id || "") +
+            badge +
             "</div>"
           );
         }).join("")

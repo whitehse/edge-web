@@ -5,20 +5,56 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>My service · details</title>
   <link rel="stylesheet" href="/app.css"/>
+  <style>
+    .svc-grid {
+      display: grid;
+      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .svc-kv { display: grid; gap: 0.35rem; margin-top: 0.5rem; }
+    .svc-kv div {
+      display: flex; justify-content: space-between; gap: 1rem;
+      padding: 0.35rem 0; border-bottom: 1px solid var(--border);
+      font-size: 0.92rem;
+    }
+    .svc-kv span:first-child { color: var(--muted); }
+    .svc-kv code { font-size: 0.85rem; }
+  </style>
 </head>
 <body class="app-shell chrome-member" data-nav="portal-service" data-title="Service details"
       data-subtitle="Your premise equipment (self only)">
 
-  <section class="card">
-    <h2>Service details</h2>
-    <p class="hint">Full detail for your location only — never other members’ data.</p>
-    <pre id="svcOut" class="compact" style="max-height:28rem;overflow:auto">Loading…</pre>
-  </section>
+  <p class="hint" style="margin:0 0 1rem">
+    Full detail for your location only — never other members’ data.
+  </p>
+  <div class="svc-grid">
+    <section class="card">
+      <h2>Location</h2>
+      <div class="svc-kv" id="locCard">Loading…</div>
+    </section>
+    <section class="card">
+      <h2>ONT</h2>
+      <div class="svc-kv" id="ontCard">—</div>
+    </section>
+    <section class="card">
+      <h2>Home router</h2>
+      <div class="svc-kv" id="cpeCard">—</div>
+    </section>
+  </div>
+  <p class="hint" style="margin-top:1rem" id="acctLine"></p>
+  <details style="margin-top:1rem">
+    <summary class="hint">Raw JSON</summary>
+    <pre id="svcOut" class="compact" style="max-height:16rem;overflow:auto"></pre>
+  </details>
 
   <script src="/app.js"></script>
   <script src="/shell.js"></script>
   <script>
+    function row(k, v) {
+      return "<div><span>" + k + "</span><span>" + (v == null || v === "" ? "—" : v) + "</span></div>";
+    }
     (async function () {
+      if (window.EdgeShell && EdgeShell.refreshAuth) await EdgeShell.refreshAuth();
       const rMe = await fetch("/auth/me", { credentials: "same-origin" });
       if (!rMe.ok) { location.href = "/portal/"; return; }
       const auth = await rMe.json();
@@ -29,6 +65,32 @@
       const r = await fetch("/api/v1/me/service", { credentials: "same-origin" });
       const d = await r.json();
       document.getElementById("svcOut").textContent = JSON.stringify(d, null, 2);
+      document.getElementById("acctLine").textContent =
+        "Account " + (d.account_id || auth.account_id || "—");
+      const loc = d.location;
+      if (!loc) {
+        document.getElementById("locCard").textContent = "No inventory match for this account.";
+        return;
+      }
+      const ont = loc.ont || {};
+      const router = loc.router || {};
+      document.getElementById("locCard").innerHTML =
+        row("Address", loc.address || "—") +
+        row("Member", loc.member || "—") +
+        row("Location id", "<code>" + (loc.id || "—") + "</code>") +
+        row("GPS", loc.lat != null ? loc.lat.toFixed(5) + ", " + loc.lon.toFixed(5) : "—");
+      document.getElementById("ontCard").innerHTML =
+        row("Status", ont.status || "—") +
+        row("PON path", "<code>" + (ont.id || "—") + "</code>") +
+        row("Serial", "<code>" + (ont.serial || "—") + "</code>") +
+        row("Shelf MAC", "<code>" + (ont.shelf_mac || "—") + "</code>") +
+        row("Rx", ont.rx_dbm != null ? ont.rx_dbm + " dBm" : "—");
+      document.getElementById("cpeCard").innerHTML =
+        row("Router id", "<code>" + (router.router_id || "—") + "</code>") +
+        row("Account routers",
+          (auth.router_ids && auth.router_ids.length)
+            ? "<code>" + auth.router_ids.join(", ") + "</code>"
+            : "—");
     })();
   </script>
 </body>

@@ -15,10 +15,21 @@
       return;
     }
     el.innerHTML = items.map(function (o) {
+      var sev = o.severity || "info";
+      var sevCls =
+        sev === "critical" || sev === "major"
+          ? "badge bad"
+          : sev === "minor"
+            ? "badge warn"
+            : "badge";
+      var member = o.member_label
+        ? " <span class=\"hint\">(" + esc(o.member_label) + ")</span>"
+        : "";
       return (
         "<div class=\"panel-list-item\" style=\"display:block;padding:0.75rem 0;border-bottom:1px solid var(--border)\">" +
         "<strong>" + esc(o.title) + "</strong> " +
-        "<span class=\"badge\">" + esc(o.severity) + " · " + esc(o.status) + "</span>" +
+        "<span class=\"" + sevCls + "\">" + esc(sev) + " · " + esc(o.status) + "</span>" +
+        member +
         "<div class=\"hint\">" + esc(o.summary || "") + "</div>" +
         "<div class=\"hint\">scope " + esc(o.scope_type) + " " +
         esc((o.scope_ids || []).join(", ")) + "</div></div>"
