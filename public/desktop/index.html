@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Remote desktop · edgehost</title>
+  <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
+  <link rel="stylesheet" href="desktop.css"/>
+</head>
+<body class="app-shell" data-nav="desktop" data-title="Remote desktop"
+      data-subtitle="Graphical desktop on the customer LAN (noVNC · internal pilot)"
+      data-wide="1">
+  <header class="hidden">
+    <h1>Remote desktop</h1>
+  </header>
+
+  <section class="card desk-banner" role="note">
+    <strong>Internal pilot.</strong>
+    This session places a full desktop as an <em>L2 peer on the customer’s home LAN</em>
+    (ARP/DHCP/NAT path). Use only for authorized troubleshooting. Clipboard is
+    disabled in this embed.
+  </section>
+
+  <section class="card desk-toolbar">
+    <div class="row desk-toolbar-row">
+      <label>Router
+        <input id="filterRouter" type="text" placeholder="cpe-lab"
+               style="min-width:10rem" autocomplete="off"/>
+      </label>
+      <label>Ticket
+        <input id="ticketId" type="text" placeholder="optional INC-…"
+               style="min-width:8rem" autocomplete="off"/>
+      </label>
+      <button type="button" id="btnConnect" class="btn primary">Connect</button>
+      <button type="button" id="btnDisconnect" class="btn secondary" disabled>Disconnect</button>
+      <span class="hint" id="statusLine">Idle — pick a router and connect</span>
+    </div>
+    <div class="row desk-meta-row" id="metaRow" hidden>
+      <span class="desk-chip" id="chipState">—</span>
+      <span class="desk-chip" id="chipLan" hidden></span>
+      <span class="desk-chip warn" id="chipThrottle" hidden>throttled</span>
+      <span class="hint" id="idleLine"></span>
+    </div>
+    <p class="hint desk-help">
+      Starts a container desktop on edgehost, tunnels L2 via CPE TAP
+      (<code>br-lan</code>), and streams the display with noVNC.
+      Requires desktop feature + helper (or lab in-process) and an online CPE —
+      <a href="/api/v1/cpe/callhome" target="_blank" rel="noopener">list sessions</a>
+      · <a href="/api/v1/cpe/desktop" target="_blank" rel="noopener">desktop status</a>.
+      Concurrent with shell; exclusive with staff SFTP/TUN/TAP.
+    </p>
+  </section>
+
+  <section class="card desk-card">
+    <div id="screen" class="desk-screen" aria-label="Remote desktop">
+      <div class="desk-placeholder" id="placeholder">
+        Connect to open the remote desktop
+      </div>
+    </div>
+  </section>
+
+  <script src="/app.js"></script>
+  <script src="/context.js"></script>
+  <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
+  <script type="module" src="desktop.js"></script>
+</body>
+</html>

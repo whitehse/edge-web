@@ -67,6 +67,13 @@
       rose: false
     },
     {
+      href: "/desktop/",
+      title: "Remote desktop",
+      desc: "noVNC desktop on the customer LAN (TAP tunnel · internal pilot).",
+      ico: "🖥",
+      rose: true
+    },
+    {
       href: "/explain/",
       title: "Fiber explain",
       desc: "Interactive path stories for training and support.",

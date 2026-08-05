@@ -23,6 +23,12 @@ Living checklist for the browser project and interaction redesign.
 - [ ] Postgres-backed inventory endpoint (same JSON shape)
 - [ ] Map: ONT status from Postgres NOTIFY / FSAN join (edgehost)
 
+## Remote desktop (noVNC)
+
+- [x] **PR-6** SPA `/desktop/` (REST session + noVNC path WS; clipboard off)
+- [ ] Optional: vendor noVNC under `public/desktop/novnc/` (CDN default today)
+- [ ] Optional: throttle UI quality from session `throttled` flag
+
 ## Contract follow-ups (need edgehost when wire changes)
 
 - [ ] Align default CH series push interval to **1 s** where product requires it

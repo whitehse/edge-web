@@ -20,6 +20,7 @@
     { id: "cpe-config", href: "/cpe-config/", label: "CPE configuration", ico: "✎" },
     { id: "flows", href: "/flows/", label: "CPE flows", ico: "⇄" },
     { id: "terminal", href: "/terminal/", label: "CPE shell", ico: "⌘" },
+    { id: "desktop", href: "/desktop/", label: "Remote desktop", ico: "🖥" },
     { section: "Access gear" },
     { id: "e7", href: "/e7/", label: "E7 Call Home", ico: "⬡" },
     { id: "junos", href: "/junos/", label: "Junos Call Home", ico: "▣" },
@@ -67,6 +68,7 @@
     if (p.indexOf("/host") === 0) return "host";
     if (p.indexOf("/cpe-config") === 0) return "cpe-config";
     if (p.indexOf("/terminal") === 0) return "terminal";
+    if (p.indexOf("/desktop") === 0) return "desktop";
     if (p.indexOf("/explain") === 0) return "explain";
     if (p.indexOf("/ca") === 0) return "ca";
     if (p.indexOf("/documentation") === 0) return "documentation";

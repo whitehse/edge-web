@@ -70,6 +70,7 @@ host/wifi follow the same envelope).
 | Telemetry status | `/api/v1/telemetry/status` | Operator/debug (not CPE path) |
 | CPE control WS | `GET /api/v1/cpe/control` | Separate hub (summon/AI); not series data |
 | CPE shell WS | `GET /api/v1/cpe/shell?router_id=` | Browser xterm.js ↔ callhome PTY (binary frames) |
+| CPE desktop | `/api/v1/cpe/desktop/*` | Remote troubleshooting desktop (REST + VNC WS) |
 | CPE callhome | `GET /api/v1/cpe/callhome` | Online routers + staff_port + reverse tunnels |
 
 ### CPE shell WebSocket
@@ -87,6 +88,33 @@ ws(s)://<host>/api/v1/cpe/shell?router_id=cpe-lab
 
 SPA: `public/terminal/` (xterm.js from CDN). Requires online CPE call-home
 session; exclusive with staff reverse-shell SSH face.
+
+### CPE remote desktop (noVNC)
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/api/v1/cpe/desktop` | `{enabled, max_sessions, active, require_ticket}` |
+| `POST` | `/api/v1/cpe/desktop/sessions` | Body `{"router_id","ticket_id?"}` → session JSON |
+| `GET` | `/api/v1/cpe/desktop/sessions` | List (own / admin all) |
+| `GET` | `/api/v1/cpe/desktop/sessions/{id}` | Status (updates idle activity) |
+| `DELETE` | `/api/v1/cpe/desktop/sessions/{id}` | Teardown |
+| `GET` | `/api/v1/cpe/desktop/vnc/{id}` | **WebSocket** reverse-proxy to loopback websockify |
+
+```text
+ws(s)://<host>/api/v1/cpe/desktop/vnc/<session_id>
+```
+
+Session JSON fields used by SPA: `id`, `router_id`, `state`, `vnc_ws_path`,
+`vnc_port`, `throttled`, `lan_ip`, `idle_timeout_s`, `ticket_id`, `error`.
+
+SPA: `public/desktop/` (noVNC RFB from CDN `@novnc/novnc`; optional vendor under
+`public/desktop/novnc/`). Clipboard **disabled** in embed. Deep link:
+`/desktop/?router_id=cpe-lab&ticket_id=&auto=1`.
+
+RBAC: `EDGE_RES_CPE_DESKTOP` (employee_admin; employee if
+`plugins.cpe_desktop.allow_employee`). Concurrent with shell; exclusive with
+staff SFTP/TUN/TAP bridge. Design:
+`edgehost/docs/designs/remote-troubleshooting-desktop.md`.
 
 Exact query parameters and JSON fields evolve with edgehost handlers; when the
 SPA depends on a field, note it here or in a page guide under `docs/guides/`.
