@@ -171,10 +171,59 @@
     return html;
   }
 
+  function ensureStylesheet(href, id) {
+    if (id && document.getElementById(id)) return;
+    if (document.querySelector('link[href="' + href + '"]')) return;
+    var link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = href;
+    if (id) link.id = id;
+    document.head.appendChild(link);
+  }
+
+  function ensureScript(src, opts) {
+    opts = opts || {};
+    if (document.querySelector('script[src="' + src + '"]')) return null;
+    var s = document.createElement("script");
+    s.src = src;
+    if (opts.type) s.type = opts.type;
+    if (opts.defer) s.defer = true;
+    if (opts.id) s.id = opts.id;
+    if (opts.onload) s.onload = opts.onload;
+    (opts.before
+      ? document.head
+      : document.body || document.head
+    ).appendChild(s);
+    return s;
+  }
+
+  /** Tailwind Play CDN (preflight off) + Motion-backed ui.js */
+  function mountUiLayer() {
+    ensureStylesheet("/ui.css", "edge-ui-css");
+    /* Tailwind optional utilities — theme via tailwind-edge.js */
+    if (!document.getElementById("edge-tw-cdn")) {
+      var tw = document.createElement("script");
+      tw.id = "edge-tw-cdn";
+      tw.src = "https://cdn.tailwindcss.com";
+      tw.onload = function () {
+        ensureScript("/tailwind-edge.js", { id: "edge-tw-cfg" });
+      };
+      tw.onerror = function () {
+        /* offline: ui.css utilities still apply */
+      };
+      document.head.appendChild(tw);
+    } else if (typeof global.tailwind !== "undefined") {
+      ensureScript("/tailwind-edge.js", { id: "edge-tw-cfg" });
+    }
+    ensureScript("/ui.js", { id: "edge-ui-js", defer: true });
+  }
+
   function mountShell() {
     var body = document.body;
     if (!body || !body.classList.contains("app-shell")) return;
     if ($("#edge-shell-sidebar")) return;
+
+    mountUiLayer();
 
     var title = body.getAttribute("data-title") || document.title || "edgehost";
     var subtitle = body.getAttribute("data-subtitle") || "";
@@ -194,7 +243,7 @@
       '<span class="app-brand-mark" aria-hidden="true"></span>' +
       '<span class="app-brand-text">' +
       '<span class="app-brand-name">edgehost</span>' +
-      '<span class="app-brand-tag">Network edge</span>' +
+      '<span class="app-brand-tag">Edge platform</span>' +
       "</span></a>" +
       '<nav class="app-nav" aria-label="Primary" id="shellNav">' +
       buildNavHtml(active, { isAdmin: false }) +

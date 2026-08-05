@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>My service · status</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
   <style>
     body.chrome-member { --sidebar-w: 13rem; }
     .portal-hero { margin-bottom: 1.25rem; }
-    .portal-hero h1 { font-family: var(--font-display); font-size: 1.75rem; margin: 0 0 0.35rem; }
+    .portal-hero h1 { font-family: var(--font-ui); font-size: var(--text-page); font-weight: 600; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
     .status-pill {
       display: inline-flex; align-items: center; gap: 0.4rem;
       padding: 0.35rem 0.75rem; border-radius: 999px;
@@ -27,16 +28,16 @@
   <div id="loginGate" class="auth-gate hidden">
     <section class="card">
       <p class="welcome">Member portal</p>
-      <p class="hint" style="margin-bottom:1rem">
-        Lab customer login (same password as operator lab). Provide your account id.
+      <p class="hint" style="margin-bottom:1.25rem">
+        Sign in to see your service status, outages, and home network.
       </p>
       <label>Account id
-        <input id="acctId" type="text" value="A-10428" autocomplete="username"/>
+        <input id="acctId" type="text" value="A-10428" autocomplete="username" placeholder="Account id"/>
       </label>
       <label>Password
-        <input id="labPw" type="password" value="lab" autocomplete="current-password"/>
+        <input id="labPw" type="password" value="lab" autocomplete="current-password" placeholder="Password"/>
       </label>
-      <div class="row">
+      <div class="row" style="margin-top:1rem">
         <button type="button" id="btnLogin" class="btn primary">Sign in</button>
       </div>
       <pre id="authOut" class="compact hidden"></pre>
@@ -81,6 +82,7 @@
 
   <script src="/app.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/portal/portal.js"></script>
 </body>
 </html>

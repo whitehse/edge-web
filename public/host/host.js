@@ -744,28 +744,17 @@
    *  height: canvas css height
    */
   /**
-   * Prefer shared chart_view (WebGPU) when page_embed.js loaded (PR-7).
-   * Falls back to legacy Canvas2D plotter below.
+   * /host/ always uses the legacy Canvas2D hospital-strip plotter.
+   *
+   * PR-7 EdgeChartEmbed (WebGPU chart_view) is not used here: it races
+   * async plot() calls against the 12 fps anim loop, freezes canvas width
+   * to a measured pixel size (fights width:100%), and previously mis-parsed
+   * ClickHouse UTC timestamps — all of which made live series look like
+   * they compressed to a spike and stopped tracking. The embed remains on
+   * /graphs/ and /flows/ where TimeController owns the window.
    */
   function plotSeries(canvas, pts, series, opts) {
-    if (!canvas) return;
-    opts = opts || {};
-    if (
-      !opts.forceLegacy &&
-      typeof window !== "undefined" &&
-      window.EdgeChartEmbed &&
-      typeof window.EdgeChartEmbed.plot === "function"
-    ) {
-      window.EdgeChartEmbed.plot(canvas, pts, series, opts).then(function (ok) {
-        if (!ok) {
-          plotSeriesLegacy(canvas, pts, series, Object.assign({}, opts, {
-            forceLegacy: true
-          }));
-        }
-      });
-      return;
-    }
-    plotSeriesLegacy(canvas, pts, series, opts);
+    plotSeriesLegacy(canvas, pts, series, opts || {});
   }
 
   function plotSeriesLegacy(canvas, pts, series, opts) {
@@ -852,19 +841,16 @@
         if (!isNaN(v) && v >= t0 - 5000 && v <= t1 + 5000) inWin++;
       }
       if (inWin === 0) {
-        /* Clock skew / all points outside window: show data span (no banner). */
+        /*
+         * Clock skew / all points outside the live window.
+         * Pin to the data end but KEEP the selected duration (winMs) so we
+         * never zoom into a short data-span and later "compress" when live
+         * mode resumes with a full lookback.
+         */
         live = false;
-        t0 = ext.tmin;
-        t1 = ext.tmax;
-        if (t1 <= t0) {
-          t0 = ext.tmax - winMs;
-          t1 = ext.tmax;
-        }
-        if (t1 - t0 < 2000) {
-          var mid = (t0 + t1) / 2;
-          t0 = mid - Math.max(winMs, 60000) / 2;
-          t1 = mid + Math.max(winMs, 60000) / 2;
-        }
+        t1 = ext.tmax + LIVE_LEAD_MS;
+        t0 = t1 - winMs;
+        if (t1 <= t0) t1 = t0 + winMs;
       }
     } else if (!ext) {
       t0 = 0;
@@ -2525,7 +2511,12 @@
   }
 
   function drawAllCharts() {
-    var win = { windowMinutes: state.minutes || selectedMinutes(), live: true };
+    var win = {
+      windowMinutes: state.minutes || selectedMinutes(),
+      live: true,
+      /* Feed age for EdgeChartEmbed liveWindow (lead-cap + stalled pin). */
+      lastPushMs: Math.max(state.lastHostPushMs || 0, state.lastWifiPushMs || 0)
+    };
     state.nCpus = detectNCpus(state.hostPts);
     var ncpu = state.nCpus;
     var i;

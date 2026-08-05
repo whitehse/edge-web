@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Junos Call Home · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
 </head>
 <body class="app-shell e7 junos" data-nav="junos" data-title="Junos Call Home"
       data-subtitle="Juniper outbound-SSH dial-in and allowlist"
@@ -31,7 +32,7 @@
     </p>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Listener status</h2>
     <p class="hint">GET <code>/api/v1/e7/status</code> — shared Call Home listener (Calix + Junos).</p>
     <div class="row">
@@ -47,7 +48,7 @@
     </div>
   </section>
 
-  <section class="card" id="addCard">
+  <section class="surface-inset decor-ring mb-4" id="addCard" data-reveal>
     <h2>Add / edit Junos system</h2>
     <p class="hint">
       PUT <code>/api/v1/e7/shelves/{device-id}</code> with
@@ -94,7 +95,7 @@ set system services outbound-ssh client edgehost servers &lt;nms-ip&gt; port 433
     </details>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Configured Junos systems</h2>
     <p class="hint">
       Filtered from GET <code>/api/v1/e7/shelves</code> (<code>vendor=junos</code> or DEVICE-ID path).
@@ -125,7 +126,7 @@ set system services outbound-ssh client edgehost servers &lt;nms-ip&gt; port 433
     </div>
   </section>
 
-  <section class="card" id="connLogCard">
+  <section class="surface-inset decor-ring mb-4" id="connLogCard" data-reveal>
     <h2>Connection progress</h2>
     <p class="hint" style="margin:0 0 0.5rem">
       TCP accept → <code>DEVICE-CONN-INFO</code> → optional HMAC → SSH client → NETCONF.
@@ -166,6 +167,7 @@ set system services outbound-ssh client edgehost servers &lt;nms-ip&gt; port 433
   <script src="/context_catalog.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/junos/junos.js"></script>
 </body>
 </html>

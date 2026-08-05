@@ -89,9 +89,24 @@ with JSON like:
   "fsan": "CXNK00A1B2C3",
   "ont_id": "1/1/3/12",
   "shelf_id": "00:02:5d:…",
+  "rx_dbm": "-19.0",
+  "tx_dbm": "2.0",
+  "ne_rx_dbm": "-21.0",
+  "bip_us": "0",
+  "bip_ds": "0",
   "source": "show-ont"
 }
 ```
+
+Soft ONT errors (Calix **`ont-us-sdber`**, `ont-ds-sdber`, BIP/missed-burst
+alarms) add `error_event` + `flash_until` (epoch ms, 60s from the raise). The
+subscriber marker **pulses for one minute** on `/map/` without painting the
+ONT down. Clears write `flash_until: "0"`. Show-ont rewrites preserve an
+unexpired `flash_until`.
+
+Popup **Optical (dB)** / **Errors** come from show-ont fields on this key
+(or from `GET /api/v1/map/ont-status` hydrate / Postgres `details`). Compact
+status-only writers (link events, older NOTIFY) must not strip those fields.
 
 | Source | When |
 |--------|------|

@@ -5,16 +5,24 @@
   flex-wrap: wrap;
   gap: 0.65rem 1rem;
   align-items: flex-end;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  /* strip style — no card fill */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
 }
 
 .graphs-toolbar label {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.78rem;
-  color: var(--muted);
-  font-weight: 500;
+  gap: 0.3rem;
+  font-size: var(--text-caption, 0.75rem);
+  color: var(--faint);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
 .graphs-toolbar input[type="text"],
@@ -63,27 +71,36 @@
   padding: 0.28rem 0.55rem;
 }
 
-.graphs-timebar .time-presets button.active {
-  background: var(--accent-glow);
-  border-color: var(--accent);
+/* Active presets: decoration (ring + fill), same size */
+.graphs-timebar .time-presets button.active,
+.graphs-timebar .time-presets button.is-active {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
   color: var(--text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+  filter: none;
 }
 
 .graphs-timebar .btn-live.active {
-  background: color-mix(in srgb, var(--ok) 22%, transparent);
-  border-color: var(--ok);
+  background: color-mix(in srgb, var(--ok) 14%, transparent);
+  border-color: color-mix(in srgb, var(--ok) 50%, var(--border));
   color: var(--ok);
   font-weight: 600;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 22%, transparent);
+  filter: none;
 }
 
 .graphs-timebar .btn-live.active.receiving {
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ok) 40%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ok) 40%, transparent),
+    0 0 16px color-mix(in srgb, var(--ok) 18%, transparent);
 }
 
 .graphs-timebar .btn-live.active.stalled {
-  background: color-mix(in srgb, var(--warn) 18%, transparent);
+  background: color-mix(in srgb, var(--warn) 14%, transparent);
   border-color: var(--warn);
   color: var(--warn);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 25%, transparent);
 }
 
 .graphs-timebar .time-scrub {
@@ -172,24 +189,34 @@
 .graph-panel {
   padding: 0;
   overflow: hidden;
-  transition: box-shadow 0.15s var(--ease);
+  /* quiet surface — ring decoration when active / drop target */
+  background: color-mix(in srgb, var(--surface) 50%, transparent);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  box-shadow: none;
+  transition: box-shadow 0.18s var(--ease), border-color 0.18s var(--ease);
 }
 
 .graph-panel.is-dragging {
   opacity: 0.55;
 }
 
-.graph-panel.is-drop-target {
-  box-shadow: 0 0 0 2px var(--accent);
+.graph-panel.is-drop-target,
+.graph-panel.is-active,
+.graph-panel:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--border));
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--accent) 15%, transparent);
 }
 
 .graph-panel-head {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.55rem 0.65rem;
+  padding: 0.55rem 0.75rem;
   border-bottom: 1px solid var(--border-soft);
-  background: color-mix(in srgb, var(--surface) 88%, var(--surface-2));
+  background: transparent;
 }
 
 .graph-panel.is-collapsed .graph-panel-head {
@@ -203,22 +230,28 @@
 
 .graph-panel-title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 600;
   font-family: var(--font-ui);
   color: var(--text);
+  letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .graph-panel-sub {
-  margin: 0.1rem 0 0;
-  font-size: 0.72rem;
+  margin: 0.12rem 0 0;
+  font-size: var(--text-caption, 0.75rem);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--faint);
 }
 
 .graph-panel-meta {
-  font-size: 0.72rem;
+  font-size: var(--text-caption, 0.75rem);
+  font-family: var(--font-mono);
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -293,7 +326,7 @@
 }
 
 .graphs-empty h2 {
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   color: var(--text);
   margin: 0 0 0.5rem;
 }
@@ -330,7 +363,7 @@
 .graphs-modal h2 {
   margin: 0 0 0.75rem;
   font-size: 1.15rem;
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
 }
 
 .graphs-modal .modal-section {

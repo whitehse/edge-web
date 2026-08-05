@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>WiFi audits · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
   <style>
     .heat-wrap { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-start; }
     #heatCanvas {
@@ -37,11 +38,11 @@
 <body class="app-shell" data-nav="wifi-audits" data-title="WiFi audits"
       data-subtitle="Walk path · heading · floor · RF heatmap">
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Audits</h2>
     <div id="list" class="panel-list">Loading…</div>
   </section>
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Upload lab sample audit</h2>
     <p class="hint">
       Demo walk includes relative <code>x_m</code>/<code>y_m</code>, compass
@@ -50,7 +51,7 @@
     <button type="button" class="btn primary" id="btnSeed">POST indoor demo walk</button>
     <pre id="out" class="compact"></pre>
   </section>
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Path sketch + RF heatmap</h2>
     <label>Audit id <input id="auditId" type="text" style="min-width:14rem"/></label>
     <button type="button" class="btn secondary" id="btnGeo">Load heatmap</button>
@@ -86,6 +87,7 @@
 
   <script src="/app.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/wifi-audits/wifi-audits.js"></script>
 </body>
 </html>

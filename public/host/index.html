@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>CPE host · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
   <link rel="stylesheet" href="host.css"/>
 </head>
 <body class="app-shell" data-nav="host" data-title="CPE host & Wi‑Fi"
@@ -14,19 +15,19 @@
     <h1>CPE host & Wi‑Fi</h1>
   </header>
 
-  <p class="hint" style="margin:0 0 0.75rem">
+  <p class="t-sm t-muted mb-3 max-w-prose" data-reveal>
     Prefer the composable
-    <a id="graphsWorkspaceLink" href="/graphs/">Graphs workspace</a>
+    <a id="graphsWorkspaceLink" class="t-accent" href="/graphs/">Graphs workspace</a>
     for zoomable WebGPU charts (host · Wi‑Fi · flows).
   </p>
 
-  <section class="card host-toolbar">
-    <div class="row host-toolbar-row">
-      <label>CPE
-        <input id="filterRouter" type="text" placeholder="router_id" style="min-width:10rem" autocomplete="off"/>
+  <section class="toolbar host-toolbar" data-reveal>
+    <div class="row host-toolbar-row w-full">
+      <label class="type-label">CPE
+        <input id="filterRouter" type="text" placeholder="router_id" style="min-width:10rem" autocomplete="off" class="t-sm t-mono"/>
       </label>
-      <label>Range
-        <select id="filterRange" title="Graph lookback window">
+      <label class="type-label">Range
+        <select id="filterRange" title="Graph lookback window" class="t-sm">
           <option value="10" selected>Last 10 minutes</option>
           <option value="30">Last 30 minutes</option>
           <option value="120">Last 2 hours</option>
@@ -35,70 +36,72 @@
           <option value="2880">Last 48 hours</option>
         </select>
       </label>
-      <a id="openShellLink" class="btn secondary" href="/terminal/">Open shell</a>
-      <span class="hint" id="statusLine">Connecting…</span>
+      <a id="openShellLink" class="btn secondary t-sm" href="/terminal/">Open shell</a>
+      <span class="chip" id="statusLine">Connecting…</span>
     </div>
   </section>
 
-  <p class="hint" style="margin:0 0 0.75rem">
-    To view or change Wi‑Fi, firewall, and other router settings, open
-    <a href="/cpe-config/">CPE configuration</a>
-    (safe apply with auto-revert).
+  <p class="t-xs t-muted mb-4" data-reveal>
+    Wi‑Fi, firewall, and router settings:
+    <a class="t-accent" href="/cpe-config/">CPE configuration</a>
+    <span class="t-faint">(safe apply · auto-revert)</span>
   </p>
 
-  <!-- At-a-glance health: high usage / problems surface here -->
-  <section class="host-health" id="healthStrip" aria-label="Resource health summary">
-    <div class="host-health-card" id="healthCpu" data-level="ok">
-      <div class="hh-label">CPU (busiest core)</div>
-      <div class="hh-value" id="hhCpuVal">—</div>
+  <!-- Health: open metrics — warn/bad via ring decoration, not size -->
+  <section class="host-health" id="healthStrip" aria-label="Resource health summary" data-reveal>
+    <div class="host-health-card metric decor-ring" id="healthCpu" data-level="ok">
+      <div class="hh-label metric-label">CPU (busiest core)</div>
+      <div class="hh-value metric-value sm t-mono" id="hhCpuVal">—</div>
       <div class="hh-bar"><span id="hhCpuBar"></span></div>
-      <div class="hh-cap" id="hhCpuCap">max 100% busy per core</div>
+      <div class="hh-cap metric-hint" id="hhCpuCap">max 100% busy per core</div>
     </div>
-    <div class="host-health-card" id="healthMem" data-level="ok">
-      <div class="hh-label">Memory used</div>
-      <div class="hh-value" id="hhMemVal">—</div>
+    <div class="host-health-card metric decor-ring" id="healthMem" data-level="ok">
+      <div class="hh-label metric-label">Memory used</div>
+      <div class="hh-value metric-value sm t-mono" id="hhMemVal">—</div>
       <div class="hh-bar"><span id="hhMemBar"></span></div>
-      <div class="hh-cap" id="hhMemCap">of total RAM</div>
+      <div class="hh-cap metric-hint" id="hhMemCap">of total RAM</div>
     </div>
-    <div class="host-health-card" id="healthLoad" data-level="ok">
-      <div class="hh-label">Load vs cores</div>
-      <div class="hh-value" id="hhLoadVal">—</div>
+    <div class="host-health-card metric decor-ring" id="healthLoad" data-level="ok">
+      <div class="hh-label metric-label">Load vs cores</div>
+      <div class="hh-value metric-value sm t-mono" id="hhLoadVal">—</div>
       <div class="hh-bar"><span id="hhLoadBar"></span></div>
-      <div class="hh-cap" id="hhLoadCap">1.0 = fully busy on 1 core</div>
+      <div class="hh-cap metric-hint" id="hhLoadCap">1.0 = fully busy on 1 core</div>
     </div>
-    <div class="host-health-card" id="healthWifi" data-level="ok">
-      <div class="hh-label">Wi‑Fi channel</div>
-      <div class="hh-value" id="hhWifiVal">—</div>
+    <div class="host-health-card metric decor-ring" id="healthWifi" data-level="ok">
+      <div class="hh-label metric-label">Wi‑Fi channel</div>
+      <div class="hh-value metric-value sm t-mono" id="hhWifiVal">—</div>
       <div class="hh-bar"><span id="hhWifiBar"></span></div>
-      <div class="hh-cap" id="hhWifiCap">util · interference risk</div>
+      <div class="hh-cap metric-hint" id="hhWifiCap">util · interference risk</div>
     </div>
-    <div class="host-health-card host-health-alerts" id="healthAlerts">
-      <div class="hh-label">Attention</div>
+    <div class="host-health-card host-health-alerts surface-inset" id="healthAlerts">
+      <div class="hh-label metric-label">Attention</div>
       <ul class="hh-alert-list" id="hhAlertList">
-        <li class="hint">Waiting for samples…</li>
+        <li class="t-xs t-muted">Waiting for samples…</li>
       </ul>
     </div>
   </section>
 
   <div class="host-grid">
-    <section class="card host-chart-card">
+    <section class="host-chart-card surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
-          <h2>CPU by core</h2>
-          <p class="host-axis-hint">Y axis: % of that core busy (0–100). Window scrolls with time; right-edge value morphs smoothly (one sample behind).</p>
+          <p class="type-label mb-1">Live</p>
+          <h2 class="type-title-sm mb-0">CPU by core</h2>
+          <p class="host-axis-hint t-xs t-muted">% busy per core (0–100). Right edge morphs one sample behind.</p>
         </div>
-        <span class="hint" id="cpuMeta">—</span>
+        <span class="chip t-mono" id="cpuMeta">—</span>
       </div>
       <canvas id="cpuChart" width="900" height="248" data-h="248" aria-label="CPU per-core chart"></canvas>
       <div class="host-legend" id="cpuLegend"></div>
     </section>
-    <section class="card host-chart-card">
+    <section class="host-chart-card surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
-          <h2>Memory</h2>
-          <p class="host-axis-hint">Y axis: % of total RAM used (0–100). Bar shows room left before OOM risk.</p>
+          <p class="type-label mb-1">Live</p>
+          <h2 class="type-title-sm mb-0">Memory</h2>
+          <p class="host-axis-hint t-xs t-muted">% of total RAM (0–100). Bar shows room before OOM risk.</p>
         </div>
-        <span class="hint" id="memMeta">—</span>
+        <span class="chip t-mono" id="memMeta">—</span>
       </div>
       <canvas id="memChart" width="900" height="248" data-h="248" aria-label="Memory chart"></canvas>
       <div class="host-legend">
@@ -106,13 +109,14 @@
         <span class="leg leg-max">100% = full (exhausted)</span>
       </div>
     </section>
-    <section class="card host-chart-card">
+    <section class="host-chart-card surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
-          <h2>Network rate</h2>
-          <p class="host-axis-hint">Y axis: bits per second on non-loopback interfaces. Dashed line = peak in this window.</p>
+          <p class="type-label mb-1">Live</p>
+          <h2 class="type-title-sm mb-0">Network rate</h2>
+          <p class="host-axis-hint t-xs t-muted">bits/s on non-loopback. Dashed = peak in window.</p>
         </div>
-        <span class="hint" id="netMeta">—</span>
+        <span class="chip t-mono" id="netMeta">—</span>
       </div>
       <canvas id="netChart" width="900" height="248" data-h="248" aria-label="Network rate chart"></canvas>
       <div class="host-legend">
@@ -121,7 +125,7 @@
         <span class="leg leg-max">window peak (max)</span>
       </div>
     </section>
-    <section class="card host-chart-card">
+    <section class="host-chart-card surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
           <h2>Load average</h2>
@@ -137,7 +141,7 @@
         <span class="leg leg-cap">core capacity (n_cpus)</span>
       </div>
     </section>
-    <section class="card host-chart-card host-chart-wide">
+    <section class="host-chart-card host-chart-wide surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
           <h2>Wi‑Fi stations &amp; interference</h2>
@@ -157,7 +161,7 @@
         <span class="leg leg-warn">interference threshold (70% util)</span>
       </div>
     </section>
-    <section class="card host-chart-card host-chart-wide">
+    <section class="host-chart-card host-chart-wide surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
           <h2>Radio health (QDF HTT)</h2>
@@ -178,7 +182,7 @@
         <span class="leg leg-warn">xretry 3% caution</span>
       </div>
     </section>
-    <section class="card host-chart-card host-chart-wide">
+    <section class="host-chart-card host-chart-wide surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <div>
           <h2>Fault timeline</h2>
@@ -199,7 +203,7 @@
     </section>
   </div>
 
-  <section class="card host-clients-card">
+  <section class="host-clients-card surface-inset decor-ring" data-reveal>
     <div class="host-panel-head">
       <div>
         <h2>Connected clients</h2>
@@ -243,7 +247,7 @@
 
   <!-- Processes panel disabled (cpe_agent proc_stats off to save CPE CPU).
        Re-enable with proc_stats.enabled: true and remove hidden below. -->
-  <section class="card host-proc-card" id="hostProcCard" hidden>
+  <section class="host-proc-card surface-inset decor-ring" data-reveal id="hostProcCard" hidden>
     <div class="host-panel-head">
       <h2>Processes</h2>
       <span class="hint" id="procMeta">—</span>
@@ -270,7 +274,7 @@
   </section>
 
   <div class="host-events-grid">
-    <section class="card">
+    <section class="surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <h2>Wi‑Fi join / leave</h2>
         <span class="hint" id="wifiEvMeta">forensic</span>
@@ -284,7 +288,7 @@
         </table>
       </div>
     </section>
-    <section class="card">
+    <section class="surface-inset decor-ring" data-reveal>
       <div class="host-panel-head">
         <h2>ARP table changes</h2>
         <span class="hint" id="arpEvMeta">forensic</span>
@@ -304,10 +308,10 @@
   <script src="/context_catalog.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/live_feed.js"></script>
   <script src="/ws_mux.js"></script>
-  <!-- PR-7: chart_view embed (WebGPU preferred; host.js falls back) -->
-  <script type="module" src="/charts/page_embed.js"></script>
+  <!-- Host charts use host.js Canvas2D strip (page_embed/WebGPU is /graphs + /flows). -->
   <script src="host.js"></script>
 </body>
 </html>

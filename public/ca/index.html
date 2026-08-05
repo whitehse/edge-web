@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Certificate Authority · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
 </head>
 <body class="app-shell lab-wide" data-nav="ca" data-title="Certificate Authority"
       data-subtitle="Roots, CSR sign, certificates, and CRL"
@@ -17,7 +18,7 @@
     <a href="/ca/crl.pem" target="_blank" rel="noopener">Public CRL (PEM)</a>
   </p>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Status</h2>
     <div class="row">
       <button type="button" id="btnStatus">Refresh</button>
@@ -25,7 +26,7 @@
     <pre id="statusOut" class="compact">…</pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Authorities</h2>
     <p class="hint">Create a self-signed root CA stored in Postgres (keys + cert PEM).</p>
     <label>Name <input id="caName" type="text" value="edgehost-lab-ca"/></label>
@@ -38,7 +39,7 @@
     <pre id="caListOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Known certificates</h2>
     <div class="row">
       <label>Status filter
@@ -64,7 +65,7 @@
     <pre id="certDetail" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Sign CSR (CPE)</h2>
     <p class="hint">Paste PEM CSR from a CPE. Optional device_id annotation.</p>
     <label>CA id <input id="signCaId" type="number" value="1"/></label>
@@ -79,7 +80,7 @@
     <pre id="signOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Issue leaf (lab convenience)</h2>
     <p class="hint">Generate key + cert for a CN (stores cert only in Postgres; key returned once).</p>
     <label>CA id <input id="issueCaId" type="number" value="1"/></label>
@@ -92,7 +93,7 @@
     <pre id="issueOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Certificate revocation list</h2>
     <p class="hint">
       Latest CRL is served publicly at <a href="/ca/crl.pem"><code>/ca/crl.pem</code></a>
@@ -110,6 +111,7 @@
   <script src="/context_catalog.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/ca/ca.js"></script>
 </body>
 </html>

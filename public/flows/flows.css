@@ -306,7 +306,7 @@
 
 .flow-panel-head h2 {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-ui);
   font-weight: 600;
   font-size: 1.1rem;
 }

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>SSH Keys · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
 </head>
 <body class="app-shell lab-wide" data-nav="ssh-keys" data-title="SSH Keys"
       data-subtitle="E7 / CPE Call Home inventory, pins, and auth audit"
@@ -19,7 +20,7 @@
     <code>plugins.ssh_keys.enabled</code> on edgehost.
   </p>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Status</h2>
     <div class="row">
       <button type="button" id="btnStatus">Refresh</button>
@@ -27,7 +28,7 @@
     <pre id="statusOut" class="compact">…</pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Pending host pins (TOFU)</h2>
     <p class="hint">
       Unknown E7 shelf host keys land here disabled. Confirm to enable the pin;
@@ -49,7 +50,7 @@
     <pre id="pendingOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Inventory</h2>
     <div class="row">
       <label>Purpose
@@ -85,7 +86,7 @@
     <pre id="keyDetail" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Generate key pair</h2>
     <p class="hint">
       Defaults: <strong>RSA</strong> for e7-client, <strong>ed25519</strong> for
@@ -113,7 +114,7 @@
     <pre id="genOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Import public key</h2>
     <label>Name <input id="impName" type="text" placeholder="cpe-42 factory"/></label>
     <label>Purpose
@@ -146,7 +147,7 @@
     <pre id="impOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Bindings</h2>
     <label>Key id <input id="bindKeyId" type="number" min="1"/></label>
     <div class="row">
@@ -170,7 +171,7 @@
     <pre id="bindOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Auth events</h2>
     <div class="row">
       <label>Entity id <input id="evEntity" type="text" placeholder="optional"/></label>
@@ -190,6 +191,7 @@
   <script src="/context_catalog.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/ssh-keys/ssh-keys.js"></script>
 </body>
 </html>

@@ -116,10 +116,24 @@
     var t1 = nowMs;
     if (dataEndMs > 0) {
       if (stale) {
+        /* Feed stalled — pin to last sample so the chart doesn't empty. */
         t1 = dataEndMs + leadMs;
       } else {
+        /*
+         * Fresh feed: wall clock, but never lead the latest sample by more
+         * than leadMs. Without this, a lagging sample age (bucket delay)
+         * scrolls history off the left into a flat empty hold.
+         */
         var leadCap = dataEndMs + leadMs;
         if (t1 > leadCap) t1 = leadCap;
+        /*
+         * If the newest sample is still behind wall clock by more than ~90%
+         * of the window (sparse REST / lag after reconnect), pin the pen to
+         * the data edge so the strip is not empty history to the left of t0.
+         */
+        if (dataEndMs < t1 - durationMs * 0.9) {
+          t1 = dataEndMs + leadMs;
+        }
       }
     }
     return {

@@ -1,10 +1,22 @@
 /* CPE host + Wi‑Fi — live, scroll-stable, problem-first layout */
 
+.host-toolbar {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding-left: 0;
+  padding-right: 0;
+}
 .host-toolbar-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.6rem 1rem;
-  align-items: center;
+  align-items: flex-end;
+}
+.host-toolbar label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 .host-spacer { flex: 1; min-width: 1rem; }
 .host-lab-login input { width: 7rem; }
@@ -24,38 +36,50 @@
   .host-health { grid-template-columns: 1fr; }
 }
 .host-health-card {
-  background: var(--surface);
+  background: transparent;
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-sm);
-  padding: 0.75rem 0.9rem;
+  padding: 0.85rem 1rem;
   transition: border-color 0.25s var(--ease), box-shadow 0.25s var(--ease);
+}
+/* Severity via decoration ring — same footprint */
+.host-health-card[data-level="ok"]:focus-within,
+.host-health-card[data-level="ok"]:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 .host-health-card[data-level="warn"] {
   border-color: color-mix(in srgb, var(--warn) 55%, var(--border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 20%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn) 22%, transparent),
+    0 0 20px color-mix(in srgb, var(--warn) 10%, transparent);
 }
 .host-health-card[data-level="bad"] {
   border-color: color-mix(in srgb, var(--bad) 60%, var(--border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 22%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 28%, transparent),
+    0 0 22px color-mix(in srgb, var(--bad) 14%, transparent);
   animation: host-pulse 2.4s ease-in-out infinite;
 }
 @keyframes host-pulse {
-  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 18%, transparent); }
-  50% { box-shadow: 0 0 16px color-mix(in srgb, var(--bad) 28%, transparent); }
+  0%, 100% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 22%, transparent); }
+  50% { box-shadow: 0 0 0 1px color-mix(in srgb, var(--bad) 35%, transparent),
+    0 0 18px color-mix(in srgb, var(--bad) 28%, transparent); }
 }
 .hh-label {
-  font-size: 0.72rem;
+  font-size: var(--text-caption, 0.75rem);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--faint);
+  font-weight: 600;
   margin-bottom: 0.2rem;
 }
 .hh-value {
-  font-family: var(--font-mono);
-  font-size: 1.15rem;
-  font-weight: 500;
+  font-family: var(--font-ui);
+  font-size: var(--text-metric, 1.625rem);
+  font-weight: 600;
   color: var(--text);
-  line-height: 1.25;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 .hh-bar {
   height: 6px;
@@ -127,6 +151,11 @@
 .host-chart-card #loadChart {
   height: 220px;
 }
+.host-chart-card.surface-inset,
+.host-clients-card.surface-inset,
+.host-proc-card.surface-inset {
+  margin-bottom: 0;
+}
 .host-panel-head {
   display: flex;
   justify-content: space-between;
@@ -136,12 +165,17 @@
 }
 .host-panel-head h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--text-title-sm, 0.9375rem);
+  font-weight: 600;
+  font-family: var(--font-ui);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
 }
 .host-axis-hint {
   margin: 0.2rem 0 0;
-  font-size: 0.82rem;
-  color: var(--text-soft);
+  font-size: var(--text-body-sm, 0.875rem);
+  color: var(--muted);
   line-height: 1.4;
   max-width: 46rem;
 }

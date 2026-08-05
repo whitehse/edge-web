@@ -5,16 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Outages · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
 </head>
 <body class="app-shell" data-nav="outages" data-title="Outages"
       data-subtitle="Known outages and notices (admin write)">
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Open / recent outages</h2>
     <div id="list" class="panel-list">Loading…</div>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Create outage (admin)</h2>
     <label>Title <input id="title" type="text" value="Lab maintenance window"/></label>
     <label>Severity
@@ -44,6 +45,7 @@
 
   <script src="/app.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/outages/outages.js"></script>
 </body>
 </html>

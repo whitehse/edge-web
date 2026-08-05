@@ -5,31 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Locations &amp; devices · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
 </head>
 <body class="app-shell" data-nav="devices" data-title="Locations &amp; devices"
       data-subtitle="Customer premise equipment — ONT and home router"
       data-wide="1">
 
   <div id="listView">
-    <div class="row" style="margin:0 0 1rem;justify-content:space-between">
-      <div class="search-field" style="flex:1;max-width:22rem">
+    <div class="toolbar" data-reveal>
+      <div class="search-field flex-1 max-w-sm">
         <input id="deviceSearch" type="search" placeholder="Search address, member, ONT, MAC…"
                autocomplete="off"/>
       </div>
-      <div class="row" style="margin:0">
-        <span class="badge muted" id="deviceCount">—</span>
-        <button type="button" id="btnRefresh" class="ghost">Refresh</button>
+      <div class="flex items-center gap-2 ml-auto">
+        <span class="chip muted" id="deviceCount">—</span>
+        <button type="button" id="btnRefresh" class="ghost t-sm">Refresh</button>
       </div>
     </div>
 
-    <section class="card" style="margin-bottom:1rem">
-      <h2 style="margin-top:0;font-size:1.05rem">CPE Call Home sessions</h2>
-      <p class="hint">
-        Live SSH sessions on :4335 — auth method and key fingerprint (PR-7).
-        Manage authorized keys on <a href="/ssh-keys/">SSH Keys</a>.
-      </p>
-      <div class="row">
-        <button type="button" id="btnChSessions">Refresh sessions</button>
+    <!-- Sessions: inset surface, not a heavy card -->
+    <section class="surface-inset mb-6 decor-ring" data-reveal>
+      <div class="section-head mb-3">
+        <div>
+          <p class="type-label mb-1">Live</p>
+          <h2 class="type-title mb-0">CPE Call Home sessions</h2>
+          <p class="section-sub">
+            SSH on :4335 — auth method and key fingerprint.
+            Manage keys on <a href="/ssh-keys/">SSH Keys</a>.
+          </p>
+        </div>
+        <button type="button" id="btnChSessions" class="ghost t-sm">Refresh</button>
       </div>
       <div class="table-wrap">
         <table class="data" id="chSessionTable">
@@ -47,80 +52,100 @@
       <pre id="chSessionOut" class="compact"></pre>
     </section>
 
+    <div class="section-head" data-reveal>
+      <div>
+        <p class="type-label mb-1">Inventory</p>
+        <h2 class="type-title">Premises</h2>
+      </div>
+    </div>
     <div class="device-grid" id="deviceGrid"></div>
   </div>
 
   <div id="detailView" class="hidden">
-    <div class="row" style="margin:0 0 1rem">
-      <button type="button" id="btnBack" class="ghost">← All locations</button>
+    <div class="toolbar" data-reveal>
+      <button type="button" id="btnBack" class="ghost t-sm">← All locations</button>
     </div>
 
-    <section class="card hero">
+    <!-- Hero keeps a card — one place we want floating emphasis -->
+    <section class="card hero decor-top is-active" data-reveal>
       <div class="device-detail-hero">
         <div class="device-icon-lg" aria-hidden="true">⌂</div>
-        <div style="flex:1;min-width:12rem">
-          <div class="device-kind" style="color:var(--accent-2);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;font-weight:600">
-            Customer location
-          </div>
-          <h2 id="detailAddress" style="margin:.2rem 0;font-size:1.45rem"></h2>
-          <p class="hint" id="detailMember" style="margin:0"></p>
+        <div class="flex-1 min-w-0">
+          <p class="type-label t-accent mb-1">Customer location</p>
+          <h2 id="detailAddress" class="type-page mt-0 mb-1"></h2>
+          <p class="t-sm t-muted mb-0" id="detailMember"></p>
           <div class="kv-grid" id="detailKv"></div>
         </div>
         <span class="badge" id="detailStatus">—</span>
       </div>
     </section>
 
-    <div class="split-2">
-      <section class="card" id="ontCard">
-        <div class="device-head" style="display:flex;justify-content:space-between;align-items:center">
-          <h2 style="margin:0">Optical network terminal</h2>
+    <div class="split-2 mt-4">
+      <section class="surface-inset decor-ring" id="ontCard" data-reveal>
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <div>
+            <p class="type-label mb-1">Access</p>
+            <h2 class="type-title-sm mb-0">
+              Optical network terminal
+            </h2>
+          </div>
           <span class="badge" id="ontBadge">—</span>
         </div>
-        <p class="hint">Access-side ONT at this premise (from Call Home / inventory).</p>
+        <p class="t-sm t-muted mb-3">Access-side ONT at this premise (Call Home / inventory).</p>
         <div class="kv-grid" id="ontKv"></div>
         <div class="row">
-          <a class="btn secondary" id="ontE7Link" href="/e7/">Open in E7</a>
+          <a class="btn secondary t-sm" id="ontE7Link" href="/e7/">Open in E7</a>
         </div>
       </section>
 
-      <section class="card" id="routerCard">
-        <div class="device-head" style="display:flex;justify-content:space-between;align-items:center">
-          <h2 style="margin:0">Customer router</h2>
+      <section class="surface-inset decor-ring" id="routerCard" data-reveal>
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <div>
+            <p class="type-label mb-1">LAN</p>
+            <h2 class="type-title-sm mb-0">
+              Customer router
+            </h2>
+          </div>
           <span class="badge" id="routerBadge">—</span>
         </div>
-        <p class="hint">CPE / gateway on the member LAN (telemetry agent path).</p>
+        <p class="t-sm t-muted mb-3">CPE gateway on the member LAN (telemetry path).</p>
         <div class="kv-grid" id="routerKv"></div>
         <div class="row">
-          <a class="btn secondary" href="/lab/">Lab diagnostics</a>
+          <a class="btn secondary t-sm" href="/lab/">Lab diagnostics</a>
         </div>
       </section>
     </div>
 
-    <section class="card">
-      <h2>Related services</h2>
-      <p class="hint">Uses the location selected in the top bar (location-first context).</p>
+    <section class="surface surface-flat mt-6" data-reveal>
+      <div class="section-head">
+        <div>
+          <p class="type-label mb-1">Context</p>
+          <h2 class="type-title">Related services</h2>
+          <p class="section-sub">Uses the location selected in the top bar.</p>
+        </div>
+      </div>
       <div class="service-grid">
-        <a class="service-tile" id="linkGraphs" href="/graphs/">
+        <a class="service-tile" id="linkGraphs" href="/graphs/" data-pressable>
           <div class="tile-ico rose">▤</div>
           <h3>Graphs</h3>
           <p>Live host · Wi‑Fi · flow charts for this CPE.</p>
         </a>
-        <a class="service-tile" id="linkHost" href="/host/">
+        <a class="service-tile" id="linkHost" href="/host/" data-pressable>
           <div class="tile-ico">▣</div>
           <h3>Host &amp; Wi‑Fi</h3>
           <p>Forensics tables and station detail.</p>
         </a>
-        <a class="service-tile" id="linkFlows" href="/flows/">
+        <a class="service-tile" id="linkFlows" href="/flows/" data-pressable>
           <div class="tile-ico">⇄</div>
           <h3>CPE flows</h3>
           <p>Flow list and series for this router.</p>
         </a>
-        <a class="service-tile" href="/map/">
+        <a class="service-tile" href="/map/" data-pressable>
           <div class="tile-ico">◎</div>
           <h3>Status map</h3>
           <p>See this area in geographic context.</p>
         </a>
-        <a class="service-tile" href="/e7/">
+        <a class="service-tile" href="/e7/" data-pressable>
           <div class="tile-ico">⬡</div>
           <h3>E7 Call Home</h3>
           <p>Shelf sessions and ONT commands.</p>
@@ -133,6 +158,7 @@
   <script src="/context_catalog.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/devices/devices.js"></script>
 </body>
 </html>

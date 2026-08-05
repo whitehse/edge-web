@@ -12,8 +12,8 @@
 
 .term-card {
   padding: 0.5rem;
-  background: #0c0e12;
-  border: 1px solid var(--border, #2a2f3a);
+  background: var(--input-bg, #0a0f1a);
+  border: 1px solid var(--border, #243049);
   min-height: 28rem;
 }
 
@@ -33,5 +33,5 @@
 }
 
 html[data-theme="light"] .term-card {
-  background: #1a1d24;
+  background: var(--surface-2, #182236);
 }

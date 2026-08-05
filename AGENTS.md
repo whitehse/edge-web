@@ -29,6 +29,13 @@ scripts/             — link demo assets (libwebmap, libanim)
 - No required bundler for lab; optional tooling may land later with an ADR
 - WebGPU preferred for charts/map; Canvas2D fallback where implemented
 
+## Typography (main window)
+
+- **Inter** + **JetBrains Mono** only in the signed-in shell (ADR-009)
+- Semantic roles: `.type-caption` … `.type-metric` (floor 12px, body 16px)
+- No serif in main window; login welcome may use `--font-login`
+- Prefer weight/color/decoration for hierarchy — not larger type for “active”
+
 ## Key commands
 
 ```bash

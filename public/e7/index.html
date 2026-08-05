@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>E7 Call Home · edgehost</title>
   <link rel="stylesheet" href="/app.css"/>
+  <link rel="stylesheet" href="/ui.css"/>
 </head>
 <body class="app-shell e7" data-nav="e7" data-title="E7 Call Home"
       data-subtitle="Calix access shelves, sessions, ONTs, and commands"
@@ -24,7 +25,7 @@
     </p>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Status</h2>
     <p class="hint">GET <code>/api/v1/e7/status</code> — Call Home metrics.</p>
     <div class="row">
@@ -39,7 +40,7 @@
     <pre id="statusOut" class="compact hidden"></pre>
   </section>
 
-  <section class="card" id="connLogCard">
+  <section class="surface-inset decor-ring mb-4" id="connLogCard" data-reveal>
     <h2>Connection progress</h2>
     <p class="hint" style="margin:0 0 0.5rem">
       Live Call Home path: TCP accept → identity (Calix XML MAC <em>or</em>
@@ -80,7 +81,7 @@
     <pre id="eventsLog" class="log events-log" aria-live="polite"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Shelves</h2>
     <p class="hint">GET <code>/api/v1/e7/shelves</code> — MAC, label, enabled, session, serial/model.</p>
     <div class="row">
@@ -108,7 +109,7 @@
     <pre id="shelvesOut" class="compact hidden"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Add / edit shelf</h2>
     <p class="hint">
       PUT <code>/api/v1/e7/shelves/{id}</code> — path id is Calix <strong>MAC</strong> or
@@ -146,7 +147,7 @@
     <pre id="shelfFormOut" class="compact"></pre>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Shelf detail / ONTs</h2>
     <p class="hint">
       Select a shelf above, or enter MAC.
@@ -196,7 +197,7 @@
     <pre id="wsOut" class="log"></pre>
   </section>
 
-  <section class="card" id="configInvCard">
+  <section class="surface-inset decor-ring mb-4" id="configInvCard" data-reveal>
     <h2>Config inventory</h2>
     <p class="hint">
       Capture running config via NETCONF <code>get-config</code>
@@ -236,7 +237,7 @@
     </div>
   </section>
 
-  <section class="card">
+  <section class="surface-inset decor-ring mb-4" data-reveal>
     <h2>Command (advanced)</h2>
     <p class="hint">
       POST <code>/api/v1/e7/shelves/{mac}/commands</code> with
@@ -260,6 +261,7 @@
   <script src="/context_catalog.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
+  <script src="/ui.js"></script>
   <script src="/e7/e7.js"></script>
 </body>
 </html>

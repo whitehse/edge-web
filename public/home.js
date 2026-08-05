@@ -126,7 +126,7 @@
       return (
         '<a class="service-tile" href="' +
         s.href +
-        '">' +
+        '" data-pressable data-reveal>' +
         '<div class="tile-ico' +
         (s.rose ? " rose" : "") +
         '">' +
@@ -140,6 +140,9 @@
         "</p></a>"
       );
     }).join("");
+    if (window.EdgeUI && typeof EdgeUI.reveal === "function") {
+      setTimeout(function () { EdgeUI.reveal(g); EdgeUI.bindPressable(g); }, 0);
+    }
   }
 
   function renderDevicePreview(list) {
@@ -223,15 +226,9 @@
   function showAuthed(yes) {
     var gate = $("loginGate");
     var dash = $("dashRoot");
-    /* When using shell, hide gate by taking over full layout */
     if (gate) {
-      if (yes) {
-        gate.classList.add("hidden");
-      } else {
-        gate.classList.remove("hidden");
-        /* Gate sits inside content; make it feel full-page */
-        gate.style.minHeight = "70vh";
-      }
+      if (yes) gate.classList.add("hidden");
+      else gate.classList.remove("hidden");
     }
     if (dash) dash.classList.toggle("hidden", !yes);
     document.body.classList.toggle("signed-out", !yes);
