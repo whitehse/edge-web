@@ -6,6 +6,64 @@
   margin-bottom: 0.75rem;
 }
 
+.desk-error {
+  border-left: 3px solid var(--danger, #e07070);
+  background: color-mix(in srgb, var(--danger, #e07070) 14%, var(--surface, #121826));
+  color: var(--text, #e6e8ec);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-bottom: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.desk-status {
+  font-weight: 500;
+  max-width: 36rem;
+}
+
+.desk-status-ok {
+  color: var(--ok, #6bcf8e) !important;
+}
+
+.desk-status-err {
+  color: var(--danger, #e07070) !important;
+}
+
+.desk-status-busy {
+  color: var(--text-muted, #9aa6bc) !important;
+}
+
+.desk-debug {
+  margin-top: 0.75rem;
+}
+
+.desk-debug summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.desk-debug-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+
+.desk-debug-log {
+  margin: 0;
+  max-height: 16rem;
+  overflow: auto;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  background: var(--input-bg, #0a0f1a);
+  border: 1px solid var(--border, #243049);
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .desk-toolbar-row {
   display: flex;
   flex-wrap: wrap;

@@ -22,6 +22,8 @@
     disabled in this embed.
   </section>
 
+  <section class="card desk-error" id="errorBanner" hidden role="alert"></section>
+
   <section class="card desk-toolbar">
     <div class="row desk-toolbar-row">
       <label>Router
@@ -34,10 +36,12 @@
       </label>
       <button type="button" id="btnConnect" class="btn primary">Connect</button>
       <button type="button" id="btnDisconnect" class="btn secondary" disabled>Disconnect</button>
-      <span class="hint" id="statusLine">Idle — pick a router and connect</span>
+      <span class="hint desk-status" id="statusLine">Checking desktop API…</span>
     </div>
     <div class="row desk-meta-row" id="metaRow" hidden>
       <span class="desk-chip" id="chipState">—</span>
+      <span class="desk-chip" id="chipSid" hidden></span>
+      <span class="desk-chip" id="chipVnc" hidden></span>
       <span class="desk-chip" id="chipLan" hidden></span>
       <span class="desk-chip warn" id="chipThrottle" hidden>throttled</span>
       <span class="hint" id="idleLine"></span>
@@ -45,10 +49,11 @@
     <p class="hint desk-help">
       Starts a container desktop on edgehost, tunnels L2 via CPE TAP
       (<code>br-lan</code>), and streams the display with noVNC.
-      Requires desktop feature + helper (or lab in-process) and an online CPE —
+      Requires <code>plugins.cpe_desktop.enabled</code> plus helper or
+      <code>inprocess_lab</code> —
       <a href="/api/v1/cpe/callhome" target="_blank" rel="noopener">list sessions</a>
-      · <a href="/api/v1/cpe/desktop" target="_blank" rel="noopener">desktop status</a>.
-      Concurrent with shell; exclusive with staff SFTP/TUN/TAP.
+      · <a href="/api/v1/cpe/desktop" target="_blank" rel="noopener">desktop status</a>
+      · <a href="/desktop/?debug=1">open with debug=1</a>.
     </p>
   </section>
 
@@ -60,10 +65,20 @@
     </div>
   </section>
 
+  <details class="card desk-debug" id="debugPanel">
+    <summary>Debug log <span class="hint">(console + copy)</span></summary>
+    <div class="row desk-debug-actions">
+      <button type="button" class="btn secondary" id="btnCopyLog">Copy log</button>
+      <span class="hint">Also open DevTools → Console and filter <code>[desktop]</code></span>
+    </div>
+    <pre class="desk-debug-log" id="debugLog" aria-live="polite"></pre>
+  </details>
+
   <script src="/app.js"></script>
   <script src="/context.js"></script>
   <script src="/shell.js"></script>
   <script src="/ui.js"></script>
+  <!-- Classic script so boot always runs even if noVNC import fails later -->
   <script type="module" src="desktop.js"></script>
 </body>
 </html>
